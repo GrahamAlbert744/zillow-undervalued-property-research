@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Environments
+.env
+.venv/
+env/
+venv/
+*.conda
+
+# Data files - keep structure, not raw data
+data/raw/*
+data/interim/*
+data/processed/*
+data/universe/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/universe/.gitkeep
+
+# Outputs
+outputs/reports/*
+outputs/tables/*
+outputs/maps/*
+outputs/research_notes/*
+!outputs/reports/.gitkeep
+!outputs/tables/.gitkeep
+!outputs/maps/.gitkeep
+!outputs/research_notes/.gitkeep
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
