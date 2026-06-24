@@ -40,8 +40,81 @@ This document is currently a planning template.
 
 \# Field Availability Log
 
+## Search Pull 1
 
+| Item | Value |
+|---|---|
+| Pull date | 2026-06-24 |
+| Search area | ZIP code 02131 |
+| Search radius | ZIP-only demo search; full 25-mile radius later |
+| Property types requested | single-family, condo, townhome, multifamily |
+| Listing statuses requested | for sale by agent, for sale by owner, coming soon, new construction |
+| Number of records returned | 50 |
+| Raw file path | Not yet saved locally |
+| Notes | First connector pull showed search-level fields only. Zestimate, Rent Zestimate, listing description, days on market, price history, tax history, and sale history were not returned in the basic search output. These may require property-detail pulls. |
 
+## Fields observed in Search Pull 1
+
+| Field | Observed? | Notes |
+|---|---:|---|
+| `formattedAddress.line1` | Yes | Street address or unit address. One listing had undisclosed address. |
+| `formattedAddress.line2` | Yes | City/state/ZIP line. |
+| `formattedAddress.city` | Yes | Values included Roslindale and Boston. |
+| `formattedAddress.stateOrProvince` | Yes | MA. |
+| `formattedAddress.postalCode` | Yes | 02131. |
+| `geoRegion.latLong.latitude` | Mostly yes | One undisclosed-address record lacked lat/long. |
+| `geoRegion.latLong.longitude` | Mostly yes | Needed for distance calculations. |
+| `geoRegion.isBadGeocode` | Yes | Returned false in observed records. |
+| `bathroomCount` | Yes | Numeric. |
+| `bedroomCount` | Yes | Numeric. |
+| `livingAreaSquareFeet` | Yes | Numeric. |
+| `lotArea.size` | Sometimes | Missing for some condos/units. |
+| `lotArea.sizeUnits` | Sometimes | Observed Square Feet and Acres. |
+| `fixtureClassification` | Yes | Observed improvement, unit, representative. |
+| `homeType` | Yes | Observed singleFamily, condo, townhome, multiFamily. |
+| `title` | Sometimes | Often condo/community name. |
+| `price.filteredPrice` | Yes | Listing price. |
+| `newConstruction.availablePlanCnt` | Yes | Numeric. |
+| `newConstruction.premierBuilder` | Yes | Boolean. |
+| `hasOpenHouse` | Yes | Boolean. |
+| `hasVRModel` | Yes | Boolean. |
+| `homeDetailsPageUrl` | Yes | Zillow URL. |
+| `zestimate` | No | Not returned in basic search output. |
+| `rent_zestimate` | No | Not returned in basic search output. |
+| `days_on_zillow` | No | Not returned in basic search output. |
+| `listing_description` | No | Not returned in basic search output. |
+| `price_history` | No | Not returned in basic search output. |
+| `tax_history` | No | Not returned in basic search output. |
+| `sale_history` | No | Not returned in basic search output. |
+
+## Immediate MVP implications
+
+The first normalized dataframe should focus on:
+
+- address
+- city
+- state
+- zip code
+- latitude
+- longitude
+- price
+- beds
+- baths
+- square feet
+- lot size
+- lot size units
+- home type
+- fixture classification
+- new construction flag
+- open house flag
+- VR model flag
+- Zillow URL
+- search date
+- data source
+
+Do not build scoring yet.
+
+Next technical step should be creating a simple raw sample file and then a normalization script that extracts the observed search-level fields.
 \## Search Pull 1
 
 
