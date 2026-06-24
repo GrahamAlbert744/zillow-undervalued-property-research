@@ -1,0 +1,231 @@
+"""
+Create first local Zillow raw sample.
+
+This file is based on the first Zillow connector pull for ZIP 02131.
+It creates a small raw JSON sample for testing field mapping and normalization.
+
+This is a development sample, not the final data pipeline.
+"""
+
+import json
+from datetime import date
+from pathlib import Path
+
+
+RAW_SAMPLE = {
+    "metadata": {
+        "source": "zillow_connector",
+        "search_area": "02131",
+        "search_date": str(date.today()),
+        "notes": "First small sample created from Zillow connector search results.",
+    },
+    "results": [
+        {
+            "zpid": "59147121",
+            "address": "41 Brown Ave, Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.281094,
+            "longitude": -71.122986,
+            "status_type": "FOR_SALE",
+            "status_text": "House for sale",
+            "home_type": "SINGLE_FAMILY",
+            "price": 1650000,
+            "beds": 5,
+            "baths": 3,
+            "square_feet": 3117,
+            "zestimate": 1606400,
+            "rent_zestimate": 5023,
+            "zillow_url": "https://www.zillow.com/homedetails/41-Brown-Ave-Roslindale-MA-02131/59147121_zpid",
+        },
+        {
+            "zpid": "59210672",
+            "address": "15 S Fairview St #3, Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.28762,
+            "longitude": -71.13201,
+            "status_type": "FOR_SALE",
+            "status_text": "Condo for sale",
+            "home_type": "CONDO",
+            "price": 583500,
+            "beds": 3,
+            "baths": 1,
+            "square_feet": 1475,
+            "zestimate": 579900,
+            "rent_zestimate": 3488,
+            "zillow_url": "https://www.zillow.com/homedetails/15-S-Fairview-St-3-Roslindale-MA-02131/59210672_zpid",
+        },
+        {
+            "zpid": "59143097",
+            "address": "136A Belgrade Ave, Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.286003,
+            "longitude": -71.13626,
+            "status_type": "FOR_SALE",
+            "status_text": "Zillow Preview",
+            "home_type": "SINGLE_FAMILY",
+            "price": 700000,
+            "beds": 3,
+            "baths": 2,
+            "square_feet": 1152,
+            "zestimate": 696200,
+            "rent_zestimate": 3733,
+            "zillow_url": "https://www.zillow.com/homedetails/136A-Belgrade-Ave-Roslindale-MA-02131/59143097_zpid",
+        },
+        {
+            "zpid": "81775911",
+            "address": "61 Cummins Hwy #2, Boston, MA 02131",
+            "city": "Boston",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.28497,
+            "longitude": -71.12606,
+            "status_type": "FOR_SALE",
+            "status_text": "Condo for sale",
+            "home_type": "CONDO",
+            "price": 525000,
+            "beds": 2,
+            "baths": 1,
+            "square_feet": 1055,
+            "zestimate": 519000,
+            "rent_zestimate": 3205,
+            "zillow_url": "https://www.zillow.com/homedetails/61-Cummins-Hwy-2-Boston-MA-02131/81775911_zpid",
+        },
+        {
+            "zpid": "59141211",
+            "address": "45 Harrison St APT B, Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.288406,
+            "longitude": -71.12079,
+            "status_type": "FOR_SALE",
+            "status_text": "Townhouse for sale",
+            "home_type": "TOWNHOUSE",
+            "price": 599900,
+            "beds": 3,
+            "baths": 3,
+            "square_feet": 1731,
+            "zestimate": 595500,
+            "rent_zestimate": 3834,
+            "zillow_url": "https://www.zillow.com/homedetails/45-Harrison-St-APT-B-Roslindale-MA-02131/59141211_zpid",
+        },
+        {
+            "zpid": "59141443",
+            "address": "737 American Legion Hwy, Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.2828,
+            "longitude": -71.11481,
+            "status_type": "FOR_SALE",
+            "status_text": "House for sale",
+            "home_type": "SINGLE_FAMILY",
+            "price": 710000,
+            "beds": 5,
+            "baths": 3,
+            "square_feet": 1755,
+            "zestimate": 718700,
+            "rent_zestimate": 5044,
+            "zillow_url": "https://www.zillow.com/homedetails/737-American-Legion-Hwy-Roslindale-MA-02131/59141443_zpid",
+        },
+        {
+            "zpid": "463318074",
+            "address": "74-76 Poplar St, Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.28532,
+            "longitude": -71.12859,
+            "status_type": "FOR_SALE",
+            "status_text": "Multi-family home for sale",
+            "home_type": "MULTI_FAMILY",
+            "price": 1190000,
+            "beds": 6,
+            "baths": 3,
+            "square_feet": 3876,
+            "zestimate": None,
+            "rent_zestimate": None,
+            "zillow_url": "https://www.zillow.com/homedetails/74-76-Poplar-St-Roslindale-MA-02131/463318074_zpid",
+        },
+        {
+            "zpid": "190036074",
+            "address": "74-76 Poplar, Boston, MA 02131",
+            "city": "Boston",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.285324,
+            "longitude": -71.12848,
+            "status_type": "FOR_SALE",
+            "status_text": "Multi-family home for sale",
+            "home_type": "MULTI_FAMILY",
+            "price": 1190000,
+            "beds": 6,
+            "baths": 3,
+            "square_feet": 3876,
+            "zestimate": 1178500,
+            "rent_zestimate": 4338,
+            "zillow_url": "https://www.zillow.com/homedetails/74-76-Poplar-St-Roslindale-MA-02131/190036074_zpid",
+        },
+        {
+            "zpid": "59146829",
+            "address": "596 American Legion Hwy APT 3, Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": 42.286198,
+            "longitude": -71.10868,
+            "status_type": "FOR_SALE",
+            "status_text": "Condo for sale",
+            "home_type": "CONDO",
+            "price": 299000,
+            "beds": 1,
+            "baths": 1,
+            "square_feet": 624,
+            "zestimate": 295700,
+            "rent_zestimate": 2267,
+            "zillow_url": "https://www.zillow.com/homedetails/596-American-Legion-Hwy-APT-3-Roslindale-MA-02131/59146829_zpid",
+        },
+        {
+            "zpid": "462926733",
+            "address": "(undisclosed Address), Roslindale, MA 02131",
+            "city": "Roslindale",
+            "state": "MA",
+            "zip_code": "02131",
+            "latitude": None,
+            "longitude": None,
+            "status_type": "FOR_SALE",
+            "status_text": "Condo for sale",
+            "home_type": "CONDO",
+            "price": 855000,
+            "beds": 2,
+            "baths": 2,
+            "square_feet": 1275,
+            "zestimate": None,
+            "rent_zestimate": 3407,
+            "zillow_url": "https://www.zillow.com/homedetails/Roslindale-MA-02131/462926733_zpid",
+        },
+    ],
+}
+
+
+def main() -> None:
+    output_dir = Path("data/raw")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = output_dir / "zillow_raw_search_20260624.json"
+
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(RAW_SAMPLE, f, indent=2)
+
+    print(f"Saved raw sample to: {output_path}")
+    print(f"Records saved: {len(RAW_SAMPLE['results'])}")
+
+
+if __name__ == "__main__":
+    main()
