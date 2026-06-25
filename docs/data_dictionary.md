@@ -22,7 +22,103 @@ data/raw/zillow_raw_search_20260624.json
 → outputs/tables/
 → outputs/reports/run_summary.md
 
+This section reflects the first working pipeline and should be updated as the Zillow connector sample expands.
 
+Table: all_properties_normalized.csv
+
+One row per Zillow property/listing record.
+
+Field	Type	Source / Derivation	MVP Use	Notes
+property_id	text	Derived from Zillow ZPID	Core identifier	Same as zpid for now.
+zpid	text	Zillow URL or raw field	Core identifier	Best available property/listing identifier.
+address	text	Raw address fields	Core field	May be undisclosed or incomplete.
+city	text	Raw city field	Core field	Observed values include Roslindale and Boston.
+state	text	Raw state field	Core field	Expected MA.
+zip_code	text	Raw postal code	Core field	Store as text, not numeric.
+latitude	numeric	Raw geocode field	Geography validation	Required for radius filtering.
+longitude	numeric	Raw geocode field	Geography validation	Required for radius filtering.
+is_bad_geocode	boolean	Raw Zillow geocode flag	Data-quality check	Use to flag bad geocodes if available.
+home_status	text	Raw or normalized listing status	Future lifecycle tracking	Search-level output may not always provide this.
+status_text	text	Raw or simplified status label	Future lifecycle tracking	Useful but not reliable enough for sold/pending logic yet.
+home_type	text	Normalized from raw home type	Core field	Expected values: single_family, condo, townhome, multi_family.
+fixture_classification	text	Raw connector field	Data-quality context	Observed values include unit, improvement, representative.
+price	numeric	Raw listing price	Core field	Required for MVP.
+zestimate	numeric	Not observed in basic search output	Not safe yet	Keep as nullable; requires detail pull validation.
+rent_zestimate	numeric	Not observed in basic search output	Not safe yet	Keep as nullable; requires detail pull validation.
+beds	numeric	Raw bedroom count	Core field	Used for property description and later metrics.
+baths	numeric	Raw bathroom count	Core field	Used for property description and later metrics.
+square_feet	numeric	Raw living area	Core field	Required for price-per-square-foot.
+lot_size	numeric	Raw lot area if available	Optional field	Often missing for condos or units.
+lot_size_units	text	Raw lot units	Optional field	Observed as Square Feet or Acres.
+price_per_sqft	numeric	price / square_feet	MVP metric	Safe only when price and square footage are valid.
+price_to_zestimate_pct	numeric	(price - zestimate) / zestimate	Paused	Not useful until Zestimate is validated.
+annual_rent_zestimate	numeric	rent_zestimate * 12	Paused	Not useful until Rent Zestimate is validated.
+gross_rent_yield	numeric	annual_rent_zestimate / price	Paused	Not useful until Rent Zestimate is validated.
+new_construction_available_plan_count	numeric	Raw new construction field	Data-quality context	Helps identify plans/new construction.
+new_construction_premier_builder	boolean	Raw new construction field	Data-quality context	May identify builder listings.
+has_open_house	boolean	Raw connector field	Optional context	Not a valuation signal yet.
+has_vr_model	boolean	Raw connector field	Optional context	Not a valuation signal yet.
+title	text	Raw title field	Optional context	Often condo/building/community name.
+zillow_url	text	Raw Zillow URL	Core field	Required for manual review.
+search_date	date/text	Raw metadata	Run tracking	Date sample was created or pulled.
+data_source	text	Assigned by pipeline	Run tracking	Currently zillow_connector.
+Data-Quality Flag Fields
+Field	Type	Meaning	Action
+missing_price	boolean	Listing price is missing.	Exclude from main ranking.
+missing_square_feet	boolean	Square footage is missing.	Exclude or place in review queue.
+missing_beds	boolean	Bedroom count is missing.	Flag for review.
+missing_baths	boolean	Bathroom count is missing.	Flag for review.
+missing_home_type	boolean	Property type is missing.	Exclude or review.
+missing_lat_long	boolean	Latitude or longitude missing.	Cannot validate radius; review or exclude.
+missing_zestimate	boolean	Zestimate missing.	Expected for search-level output; do not penalize too heavily yet.
+missing_rent_zestimate	boolean	Rent Zestimate missing.	Expected for search-level output; income scoring paused.
+undisclosed_address	boolean	Address includes undisclosed-address language.	Manual review.
+invalid_price	boolean	Price missing, zero, or invalid.	Exclude from ranking.
+invalid_square_feet	boolean	Square footage missing, zero, or invalid.	Exclude from price-per-square-foot calculations.
+possible_duplicate_address	boolean	Same address appears more than once.	Review before deduplication.
+possible_duplicate_lat_long	boolean	Same coordinates appear more than once.	May be separate units; review carefully.
+data_needs_review	boolean	One or more major data-quality issues found.	Place in review queue.
+MVP Trust Rules
+Safe for current MVP inspection
+address
+city
+state
+zip_code
+latitude
+longitude
+home_type
+price
+beds
+baths
+square_feet
+lot_size, if present
+lot_size_units, if present
+price_per_sqft
+zillow_url
+Available but use cautiously
+fixture_classification
+title
+new_construction_available_plan_count
+new_construction_premier_builder
+has_open_house
+has_vr_model
+home_status
+status_text
+Not safe for MVP scoring yet
+zestimate
+rent_zestimate
+price_to_zestimate_pct
+annual_rent_zestimate
+gross_rent_yield
+days on market
+price history
+tax history
+sale history
+listing description
+HOA fee
+property tax
+
+These fields either were not returned in the basic search-level output or require property-detail validation.
 
 This document defines the planned fields for the Zillow Undervalued Property Research project.
 
