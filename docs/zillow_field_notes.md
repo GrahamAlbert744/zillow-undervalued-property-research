@@ -42,6 +42,7 @@ This document is currently a planning template.
 
 ## Search Pull 1
 
+
 | Item | Value |
 |---|---|
 | Pull date | 2026-06-24 |
@@ -89,6 +90,35 @@ This document is currently a planning template.
 
 ## Immediate MVP implications
 
+---
+
+# Detail Probe 1 — Zestimate and Rent Zestimate
+
+## Probe date
+
+2026-06-25
+
+## Property tested
+
+41 Brown Ave, Roslindale, MA 02131
+
+## Purpose
+
+Test whether Zillow connector can return Zestimate and Rent Zestimate through separate detail-style calls, because those fields were not returned in the basic search-level output.
+
+## Result
+
+The Zillow connector returned both:
+
+- Zestimate
+- Rent Zestimate
+
+## Zestimate result
+
+```text
+The Zestimate for 41 Brown Ave Roslindale, MA 02131 is $1,606,400 ($515/sqft) with the estimated sales range of $1,526,000 - $1,687,000.
+The listing price, set by the seller, is a key input to the Zestimate for this property.
+
 The first normalized dataframe should focus on:
 
 - address
@@ -117,6 +147,76 @@ Do not build scoring yet.
 Next technical step should be creating a simple raw sample file and then a normalization script that extracts the observed search-level fields.
 \## Search Pull 1
 
+---
+
+# Detail Probe 2 — Multi-Property Zestimate and Rent Zestimate Validation
+
+## Probe date
+
+2026-06-25
+
+## Purpose
+
+Test whether Zestimate and Rent Zestimate are available across different property types, not just one single-family property.
+
+The first search-level Zillow connector output did not return Zestimate or Rent Zestimate directly. This probe tests whether those fields can be retrieved through separate Zillow valuation calls.
+
+## Properties tested
+
+| Property | Property type | Zestimate returned? | Rent Zestimate returned? | Notes |
+|---|---|---:|---:|---|
+| 41 Brown Ave, Roslindale, MA 02131 | Single-family | Yes | Yes | First detail probe. |
+| 15 S Fairview St #3, Roslindale, MA 02131 | Condo | Yes | Yes | Zestimate call returned comps and noted seller listing price as key input. |
+| 45 Harrison St APT B, Roslindale, MA 02131 | Townhouse | Yes | Yes | Zestimate call returned comps and noted seller listing price as key input. |
+| 74-76 Poplar St, Roslindale, MA 02131 | Multifamily | Yes | Yes | Zestimate call returned comps and noted seller listing price as key input. |
+
+## Values returned
+
+| Property | Zestimate | Zestimate per sqft | Estimated sales range | Rent Zestimate |
+|---|---:|---:|---|---:|
+| 41 Brown Ave | $1,606,400 | $515/sqft | $1,526,000 - $1,687,000 | $5,023 |
+| 15 S Fairview St #3 | $579,600 | $393/sqft | $551,000 - $609,000 | $3,488 |
+| 45 Harrison St APT B | $595,500 | $344/sqft | $566,000 - $625,000 | $3,834 |
+| 74-76 Poplar St | $1,178,500 | $304/sqft | $1,120,000 - $1,237,000 | $4,338 |
+
+## Confirmed available through separate detail calls
+
+| Field | Availability after probe | Use status |
+|---|---|---|
+| Zestimate | Available for 4/4 tested properties | Useful but cautious |
+| Zestimate per square foot | Available for 4/4 tested properties | Useful but cautious |
+| Estimated sales range | Available for 4/4 tested properties | Useful but cautious |
+| Rent Zestimate | Available for 4/4 tested properties | Useful but cautious |
+| Comparable homes | Available for 4/4 tested properties | Requires parsing and validation |
+| Comp sale prices | Available for 4/4 tested properties | Requires parsing and validation |
+| Comp sale timing | Available for 4/4 tested properties | Requires parsing and validation |
+| Comp Zestimate | Available for 4/4 tested properties | Requires parsing and validation |
+
+## Important caution
+
+For all tested properties, Zillow stated that the seller listing price is a key input to the Zestimate.
+
+This means Zestimate should not be treated as an independent estimate of fair value for active listings. It may partly reflect the asking price.
+
+## Pipeline implication
+
+The project should use a two-stage data collection approach:
+
+1. Use search-level pulls to identify and normalize candidate properties.
+2. Use detail/valuation calls only on selected properties to retrieve Zestimate, Rent Zestimate, sales range, and comparable-home text.
+
+## Scoring implication
+
+Do not use Zestimate as the dominant valuation signal.
+
+Potential future use:
+
+- price vs Zestimate as a weak/moderate signal
+- Zestimate sales range as a confidence/context field
+- Rent Zestimate for rough gross-rent-yield screening
+- comparable-sale text as a future parsing target
+
+Do not build final scoring until these fields are tested on a larger and more diverse sample.
 
 
 | Item | Value |
