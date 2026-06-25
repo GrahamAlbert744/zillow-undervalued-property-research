@@ -4,6 +4,24 @@
 
 \## Purpose
 
+---
+
+# Observed MVP Pipeline Fields
+
+## Source
+
+These fields come from the first local Zillow sample and normalization pipeline.
+
+Pipeline flow:
+
+```text
+data/raw/zillow_raw_search_20260624.json
+→ src/field_mapping.py
+→ data/processed/all_properties_normalized.csv
+→ src/data_quality.py
+→ outputs/tables/
+→ outputs/reports/run_summary.md
+
 
 
 This document defines the planned fields for the Zillow Undervalued Property Research project.
