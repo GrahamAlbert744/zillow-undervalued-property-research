@@ -237,6 +237,103 @@ Do not build final scoring until these fields are tested on a larger and more di
 
 | Notes | TBD |
 
+---
+
+# Search Pull 3 — Price-Reduction Filter Probe
+
+## Pull date
+
+2026-06-26
+
+## Purpose
+
+Test whether the Zillow connector can return a subset of active residential properties with price reductions inside the approximate 25-mile search area around ZIP code 02131.
+
+This pull is for signal validation only.
+
+Do not score properties yet.
+
+## Search setup
+
+| Item | Value |
+|---|---|
+| Center area | ZIP code 02131 |
+| Search type | Approximate 25-mile polygon around 02131 |
+| Property statuses | for sale by agent, for sale by owner, coming soon, new construction |
+| Property types | single-family, condo, townhome, multifamily |
+| Additional filter | price reduction |
+| Total matching count | 2,093 |
+| Displayed result count | 100 |
+
+## Fields returned
+
+The price-reduction pull returned the same basic search-level fields as prior search pulls:
+
+- address
+- city
+- state
+- ZIP code
+- latitude
+- longitude
+- bad geocode flag
+- bedroom count
+- bathroom count
+- living area square feet
+- lot size, when available
+- lot size units, when available
+- fixture classification
+- home type
+- listing price
+- title, sometimes
+- new construction flags
+- open house flag
+- VR model flag
+- Zillow detail URL
+
+## Important finding
+
+The price-reduction filter works as a search filter, but the returned structured fields did not clearly include:
+
+- previous list price
+- price cut amount
+- price cut percentage
+- price cut date
+- days on market
+
+This means price reduction can be used as a candidate-selection flag, but the actual price-cut details may require a property-detail pull or manual validation.
+
+## MVP implication
+
+Future pipeline field to add:
+
+- `zillow_price_reduction_filter_match`
+
+This field should mean:
+
+The property appeared in a Zillow connector search that was filtered for price reductions.
+
+It should not mean we know the exact price-cut amount or date.
+
+## Scoring implication
+
+Do not score price reductions yet.
+
+Possible future use:
+
+- weak positive signal if property appears in price-reduction search
+- stronger signal only if prior price, current price, cut amount, and cut date are confirmed
+- reduce confidence if price-cut details are missing
+
+## Required validation before scoring
+
+Before using price cuts in the scoring model, validate whether detail-level Zillow calls can return:
+
+- previous price
+- current price
+- price history
+- date of price reduction
+- size of price reduction
+- number of price cuts
 
 
 \---
