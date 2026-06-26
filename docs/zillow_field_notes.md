@@ -336,6 +336,81 @@ Before using price cuts in the scoring model, validate whether detail-level Zill
 - number of price cuts
 
 
+---
+
+# Detail Probe 3 — Active Price-Reduction Listing Detail Test
+
+## Probe date
+
+2026-06-26
+
+## Purpose
+
+Test whether Zillow property-detail calls can return price-history or price-cut details for active listings that appeared in the price-reduction search.
+
+## Properties tested
+
+| Property | Listing context | Detail call result |
+|---|---|---|
+| 15 S Fairview St #3, Roslindale, MA 02131 | Active price-reduction candidate | Failed. Zillow reported active/Showcase listing details are not supported. |
+| 45 Bonair St, West Roxbury, MA 02132 | Active price-reduction candidate | Failed. Zillow reported active for-sale listing details are not supported. |
+| 249 Mill St, Randolph, MA 02368 | Active price-reduction candidate | Failed. Zillow reported active for-sale listing details are not supported. |
+
+## Finding
+
+The Zillow connector can return active listings through search, including a price-reduction-filtered search.
+
+However, the property-detail tool did not return full active-listing details for the tested active listings.
+
+The detail tool reported that only off-market properties are currently supported.
+
+## Fields still not validated for active listings
+
+The following fields remain unavailable or unvalidated for active listings:
+
+- previous list price
+- price cut amount
+- price cut percentage
+- price cut date
+- full price history
+- days on Zillow
+- listing description
+- tax history
+- sale history
+- HOA fee
+- property tax
+- listing-agent details
+
+## MVP implication
+
+For active listings, use the search-level fields as the reliable MVP base.
+
+The price-reduction search should create only this field:
+
+- `zillow_price_reduction_filter_match`
+
+This means the property appeared in a search filtered for price reductions.
+
+It does not mean the exact price-cut amount, date, or prior list price is known.
+
+## Scoring implication
+
+Do not score price-cut magnitude yet.
+
+Possible future scoring use:
+
+- weak positive signal: appeared in price-reduction search
+- stronger signal only if price-history fields become available
+- confidence penalty if price-reduction details are missing
+
+## Decision
+
+Do not build price-history scoring yet.
+
+Next recommended technical step:
+
+Build geography validation in `src/geocoding.py`, because latitude and longitude are available from search-level output and the 25-mile radius rule is a hard project filter.
+
 \---
 
 
