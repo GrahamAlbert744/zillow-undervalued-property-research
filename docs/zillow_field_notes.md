@@ -962,3 +962,206 @@ Create a small manually entered recently sold probe table with:
 - longitude
 - status_conflict_flag
 - sale_outcome_needs_validation
+
+---
+
+# Detail Probe 4 — Recently Sold Detail Validation
+
+## Probe date
+
+2026-06-29
+
+## Purpose
+
+Test whether Zillow property-detail calls can return richer sale-outcome fields for recently sold properties.
+
+This follows Search Pull 4 and Search Pull 4B.
+
+The goal is to determine whether recently sold properties can support future sale-outcome tracking and model backtesting.
+
+Do not build backtesting yet.
+
+## Properties tested
+
+| Property | Property type/context | Detail call result |
+|---|---|---|
+| 11 Eugenia Rd, Roslindale, MA 02131 | Recently sold single-family candidate | Detail call succeeded. Returned tax/geography/parcel fields, but not clean sale date or final sale price. |
+| 114 Curve St, Dedham, MA 02026 | Recently sold single-family candidate | Detail call succeeded. Returned tax/geography/parcel fields, but not clean sale date or final sale price. |
+| 56 School St, Somerville, MA 02143 | Recently sold multifamily candidate | Detail call succeeded. Returned tax/geography/parcel fields, but not clean sale date or final sale price. |
+
+## Fields returned by recently sold detail calls
+
+The detail payload returned fields including:
+
+- address
+- city
+- state
+- ZIP code
+- latitude
+- longitude
+- parcel ID
+- county
+- county FIPS
+- tax assessed value
+- tax assessed year
+- property tax rate
+- tax history
+- foreclosure flags
+- undisclosed-address flag
+- non-owner-occupied flag
+- timezone
+- static map / street view references
+
+## Fields not clearly returned
+
+The detail payload did not clearly return structured fields for:
+
+- confirmed final sale price
+- sale date
+- original list price
+- last list price before sale
+- days on market
+- price history
+- sale history
+- beds
+- baths
+- square feet
+- listing description
+
+## Important finding
+
+Recently sold detail calls are useful for tax and parcel enrichment.
+
+However, they are not sufficient by themselves for model backtesting because final sale date and confirmed final sale price were not clearly returned in the tested detail payloads.
+
+## MVP implication
+
+Recently sold detail calls can support future enrichment fields such as:
+
+- `tax_assessed_value`
+- `tax_assessed_year`
+- `property_tax_rate`
+- `parcel_id`
+- `county`
+- `county_fips`
+- `tax_history_available`
+- `foreclosure_flag_available`
+- `is_undisclosed_address`
+- `is_non_owner_occupied`
+
+## Backtesting implication
+
+Do not use the recently sold detail payload alone to calculate model accuracy.
+
+Backtesting still requires validated sale-outcome fields:
+
+- final sale price
+- sale date
+- model estimate frozen before sale
+- model version
+- original list price
+- last list price before sale
+
+## Decision
+
+Do not build model backtesting yet.
+
+The next safe coding step is to add a structured recently sold detail-probe table that records which tax/parcel fields are available and flags sale-outcome fields as unavailable or needing validation.
+
+
+---
+
+# Detail Probe 5 — Recently Sold Zestimate-History Validation
+
+## Probe date
+
+2026-06-29
+
+## Purpose
+
+Test whether Zillow can return Zestimate-history data for recently sold or off-market properties.
+
+This follows the recently sold search probe and recently sold detail validation.
+
+The goal is to determine whether Zestimate history can support valuation-trend context for future research notes.
+
+Do not build backtesting yet.
+
+## Properties tested
+
+| Property | Zestimate history returned? | Current Zestimate | History range returned |
+|---|---:|---:|---|
+| 11 Eugenia Rd, Roslindale, MA 02131 | Yes | $834,900 | 2021-06-30 through 2026-05-31 |
+| 114 Curve St, Dedham, MA 02026 | Yes | $808,900 | 2021-06-30 through 2026-05-31 |
+| 56 School St, Somerville, MA 02143 | Yes | $1,610,200 | 2023-06-30 through 2026-05-31 |
+
+## Fields returned
+
+The Zestimate-history tool returned:
+
+- address
+- current Zestimate
+- monthly percentage-change history
+- Zestimate disclaimer
+
+## Fields not returned
+
+The Zestimate-history tool did not return:
+
+- final sale price
+- sale date
+- original list price
+- last list price before sale
+- price history
+- tax history
+- beds
+- baths
+- square feet
+- listing description
+
+## Important caution
+
+Zillow states that the Zestimate is Zillow's estimate of a home's market value. It incorporates public, MLS, and user-submitted data, including listing information, sale prices, tax assessor data, home facts, location, and market trends. It is not an appraisal and should not be used as a substitute for one.
+
+This means Zestimate history can be used as context, but not as ground truth.
+
+## MVP implication
+
+Future table fields to add:
+
+- `current_zestimate`
+- `zestimate_history_available`
+- `zestimate_history_start_date`
+- `zestimate_history_end_date`
+- `zestimate_pct_change_latest`
+- `zestimate_pct_change_min`
+- `zestimate_pct_change_max`
+- `zestimate_pct_change_volatility`
+
+## Scoring implication
+
+Do not use Zestimate history as a dominant score driver.
+
+Potential future uses:
+
+- valuation-trend context
+- confidence/context field in property research notes
+- warning flag if Zestimate moved sharply near the sale/search date
+- comparison against listing price only after data-quality checks
+
+## Backtesting implication
+
+Zestimate history does not solve sale-outcome validation.
+
+Backtesting still requires:
+
+- confirmed final sale price
+- sale date
+- model estimate frozen before sale
+- model version used at scoring time
+
+## Decision
+
+Do not build model backtesting yet.
+
+The next safe coding step is to create a structured recently sold detail/history probe table that records tax/parcel fields and Zestimate-history availability while keeping sale-outcome fields marked as unconfirmed.
