@@ -741,3 +741,106 @@ After every raw Zillow connector pull, update this document with:
 
 10\. Fields not safe for MVP
 
+---
+
+# Search Pull 4 — Recently Sold / Sale Outcome Probe
+
+## Pull date
+
+2026-06-29
+
+## Purpose
+
+Test whether the Zillow connector can return recently sold residential properties inside the approximate 25-mile search area around ZIP code 02131.
+
+This pull is for lifecycle-tracking and future model-backtesting validation only.
+
+Do not score properties yet.
+
+## Search setup
+
+| Item | Value |
+|---|---|
+| Center area | ZIP code 02131 |
+| Search type | Approximate 25-mile polygon around 02131 |
+| Property status | recently sold |
+| Property types | single-family, condo, townhome, multifamily |
+| Total matching count | 98,501 |
+| Displayed result count | 100 |
+
+## Fields returned
+
+The recently sold search returned the same basic search-level fields as prior searches:
+
+- address
+- city
+- state
+- ZIP code
+- latitude
+- longitude
+- bad geocode flag
+- bedroom count
+- bathroom count
+- living area square feet
+- lot size, when available
+- lot size units, when available
+- fixture classification
+- home type
+- filtered price
+- title, sometimes
+- new construction flags
+- open house flag
+- VR model flag
+- Zillow detail URL
+
+## Important finding
+
+The Zillow connector can return a recently sold search universe.
+
+However, the search-level output did not clearly return structured fields for:
+
+- sale date
+- original list price
+- last list price before sale
+- days on market
+- status change date
+- confirmed sale price flag
+- price change history
+
+## MVP implication
+
+Future pipeline field to add:
+
+- `zillow_recently_sold_filter_match`
+
+This field should mean:
+
+The property appeared in a Zillow connector search filtered for recently sold properties.
+
+It should not yet mean that the project has a fully validated final sale outcome.
+
+## Sale-outcome implication
+
+The `price.filteredPrice` field in a recently sold search may represent a sold price, but this needs validation before it is used for model backtesting.
+
+Do not treat it as a confirmed final sale price until we test recently sold property details or compare against another reliable source.
+
+## Required validation before backtesting
+
+Before using recently sold data for model evaluation, validate whether Zillow or another source can return:
+
+- final sale price
+- sale date
+- prior list price
+- price history
+- days on market
+- property status history
+- whether the sale price is confirmed
+
+## Decision
+
+Do not build sale-outcome backtesting yet.
+
+Use this pull only to confirm that a recently sold search universe exists.
+
+Next technical step should remain local pipeline strengthening before scoring or backtesting.
