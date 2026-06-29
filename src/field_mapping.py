@@ -1,183 +1,394 @@
 """
-Field mapping utilities for Zillow connector data.
+Field mapping utilities for the Zillow undervalued-property project.
 
-Goal:
-- Load raw Zillow connector output.
-- Normalize records into one row per property/listing.
-- Create simple derived fields.
-- Create basic data-quality flags.
+Purpose:
+- Load raw Zillow JSON.
+- Normalize raw Zillow connector records into one row per property/listing.
+- Support both:
+    1. flat local development samples
+    2. nested Zillow connector search results
+- Add basic derived fields:
+    - price_per_sqft
+    - price_to_zestimate_pct
+    - annual_rent_zestimate
+    - gross_rent_yield
+    - distance_from_02131_miles
+    - outside_target_radius
 
-Important:
-This module should not score properties yet.
+This file does not score properties.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 
+try:
+    from src.geocoding import haversine_distance_miles, is_outside_radius
+except ModuleNotFoundError:
+    from geocoding import haversine_distance_miles, is_outside_radius
 
-def safe_get(obj: dict[str, Any], *keys: str) -> Any:
-    """Safely get a nested value from a dictionary."""
-    current: Any = obj
 
-    for key in keys:
+DEFAULT_RAW_PATH = Path("data/raw/zillow_raw_search_20260624.json")
+DEFAULT_OUTPUT_PATH = Path("data/processed/all_properties_normalized.csv")
+
+
+def get_nested(data: dict[str, Any], path: list[str], default: Any = None) -> Any:
+    """Safely retrieve a nested dictionary value."""
+    current: Any = data
+
+    for key in path:
         if not isinstance(current, dict):
-            return None
+            return default
         current = current.get(key)
+
+        if current is None:
+            return default
 
     return current
 
 
-def parse_zpid_from_url(url: str | None) -> str | None:
-    """Extract Zillow ZPID from a Zillow URL."""
+def clean_text(value: Any) -> Optional[str]:
+    """Return stripped text or None."""
+    if value is None:
+        return None
+
+    text = str(value).strip()
+
+    if text == "":
+        return None
+
+    return text
+
+
+def to_float(value: Any) -> Optional[float]:
+    """Convert a value to float when possible."""
+    if value is None:
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def to_int_or_float(value: Any) -> Optional[float]:
+    """Convert numeric-like values while preserving missing values."""
+    return to_float(value)
+
+
+def extract_zpid(record: dict[str, Any]) -> Optional[str]:
+    """Extract ZPID from explicit field or Zillow URL."""
+    zpid = record.get("zpid") or record.get("property_id")
+
+    if zpid is not None:
+        return str(zpid)
+
+    url = (
+        record.get("zillow_url")
+        or record.get("homeDetailsPageUrl")
+        or get_nested(record, ["hdpData", "homeInfo", "homeDetailsPageUrl"])
+    )
+
     if not url:
         return None
 
-    match = re.search(r"/(\d+)_zpid", url)
+    match = re.search(r"/(\d+)_zpid", str(url))
+
     if match:
         return match.group(1)
 
     return None
 
 
-def normalize_home_type(value: str | None) -> str | None:
-    """Normalize home type values."""
+def normalize_home_type(value: Any) -> Optional[str]:
+    """Normalize Zillow home type labels."""
     if value is None:
         return None
 
-    value_clean = str(value).strip()
+    raw = str(value).strip()
 
     mapping = {
         "SINGLE_FAMILY": "single_family",
         "singleFamily": "single_family",
         "single_family": "single_family",
+        "house": "single_family",
         "CONDO": "condo",
         "condo": "condo",
         "TOWNHOUSE": "townhome",
+        "townhouse": "townhome",
         "townhome": "townhome",
         "MULTI_FAMILY": "multi_family",
         "multiFamily": "multi_family",
         "multi_family": "multi_family",
+        "multifamily": "multi_family",
     }
 
-    return mapping.get(value_clean, value_clean.lower())
+    return mapping.get(raw, raw.lower())
 
 
-def safe_divide(numerator: float | int | None, denominator: float | int | None) -> float | None:
-    """Safely divide two numeric values."""
-    if numerator is None or denominator is None:
-        return None
+def build_address(record: dict[str, Any]) -> Optional[str]:
+    """Build address from flat or nested Zillow fields."""
+    flat_address = clean_text(record.get("address"))
 
-    try:
-        if denominator == 0:
-            return None
-        return float(numerator) / float(denominator)
-    except (TypeError, ValueError):
-        return None
+    if flat_address:
+        return flat_address
+
+    line1 = clean_text(get_nested(record, ["formattedAddress", "line1"]))
+    line2 = clean_text(get_nested(record, ["formattedAddress", "line2"]))
+
+    if line1 and line2:
+        return f"{line1}, {line2}"
+
+    if line1:
+        city = clean_text(get_nested(record, ["formattedAddress", "city"]))
+        state = clean_text(get_nested(record, ["formattedAddress", "stateOrProvince"]))
+        zip_code = clean_text(get_nested(record, ["formattedAddress", "postalCode"]))
+
+        parts = [line1]
+
+        city_state_zip = " ".join(part for part in [state, zip_code] if part)
+
+        if city and city_state_zip:
+            parts.append(f"{city}, {city_state_zip}")
+        elif city:
+            parts.append(city)
+        elif city_state_zip:
+            parts.append(city_state_zip)
+
+        return ", ".join(parts)
+
+    return None
 
 
-def normalize_record(item: dict[str, Any], search_date: str | None = None) -> dict[str, Any]:
+def extract_price(record: dict[str, Any]) -> Optional[float]:
+    """Extract listing price from flat or nested fields."""
+    candidates = [
+        record.get("price"),
+        get_nested(record, ["price", "filteredPrice"]),
+        get_nested(record, ["price", "value"]),
+        get_nested(record, ["hdpData", "homeInfo", "price"]),
+    ]
+
+    for candidate in candidates:
+        numeric_value = to_float(candidate)
+        if numeric_value is not None:
+            return numeric_value
+
+    return None
+
+
+def extract_records(payload: Any) -> list[dict[str, Any]]:
     """
-    Normalize one Zillow result.
+    Extract property records from supported raw payload shapes.
 
-    Supports:
-    1. simplified flat sample records
-    2. nested Zillow connector search records with {"type": "property", "result": {...}}
+    Supported shapes:
+    - {"results": [...]}
+    - [...]
+    - {"result": {...}}
     """
-    record = item.get("result", item)
+    if isinstance(payload, list):
+        raw_records = payload
+    elif isinstance(payload, dict) and isinstance(payload.get("results"), list):
+        raw_records = payload["results"]
+    elif isinstance(payload, dict) and isinstance(payload.get("result"), dict):
+        raw_records = [payload]
+    else:
+        raw_records = []
 
-    url = record.get("zillow_url") or record.get("homeDetailsPageUrl")
-    zpid = record.get("zpid") or parse_zpid_from_url(url)
+    records: list[dict[str, Any]] = []
 
-    formatted_address = record.get("formattedAddress", {})
+    for item in raw_records:
+        if not isinstance(item, dict):
+            continue
 
-    line1 = formatted_address.get("line1")
-    line2 = formatted_address.get("line2")
+        # Zillow connector search results often look like:
+        # {"type": "property", "result": {...}}
+        if isinstance(item.get("result"), dict):
+            records.append(item["result"])
+        else:
+            records.append(item)
 
-    address = record.get("address")
-    if address is None and line1 and line2:
-        address = f"{line1}, {line2}"
-    elif address is None:
-        address = line1
+    return records
 
-    city = record.get("city") or formatted_address.get("city")
-    state = record.get("state") or formatted_address.get("stateOrProvince")
-    zip_code = record.get("zip_code") or formatted_address.get("postalCode")
 
-    latitude = record.get("latitude")
-    if latitude is None:
-        latitude = safe_get(record, "geoRegion", "latLong", "latitude")
+def normalize_single_record(
+    record: dict[str, Any],
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Normalize one Zillow property/listing record."""
+    metadata = metadata or {}
 
-    longitude = record.get("longitude")
-    if longitude is None:
-        longitude = safe_get(record, "geoRegion", "latLong", "longitude")
+    zpid = extract_zpid(record)
+    property_id = zpid
 
-    price = record.get("price")
-    if isinstance(price, dict):
-        price = price.get("filteredPrice")
-    if price is None:
-        price = safe_get(record, "price", "filteredPrice")
+    address = build_address(record)
 
-    beds = record.get("beds")
-    if beds is None:
-        beds = record.get("bedroomCount")
+    city = clean_text(
+        record.get("city")
+        or get_nested(record, ["formattedAddress", "city"])
+    )
 
-    baths = record.get("baths")
-    if baths is None:
-        baths = record.get("bathroomCount")
+    state = clean_text(
+        record.get("state")
+        or get_nested(record, ["formattedAddress", "stateOrProvince"])
+    )
 
-    square_feet = record.get("square_feet")
-    if square_feet is None:
-        square_feet = record.get("livingAreaSquareFeet")
+    zip_code = clean_text(
+        record.get("zip_code")
+        or record.get("postalCode")
+        or get_nested(record, ["formattedAddress", "postalCode"])
+    )
 
-    lot_size = record.get("lot_size")
-    if lot_size is None:
-        lot_size = safe_get(record, "lotArea", "size")
+    latitude = to_float(
+        record.get("latitude")
+        or get_nested(record, ["geoRegion", "latLong", "latitude"])
+    )
 
-    lot_size_units = record.get("lot_size_units")
-    if lot_size_units is None:
-        lot_size_units = safe_get(record, "lotArea", "sizeUnits")
+    longitude = to_float(
+        record.get("longitude")
+        or get_nested(record, ["geoRegion", "latLong", "longitude"])
+    )
 
-    home_type = record.get("home_type") or record.get("homeType")
-    home_type = normalize_home_type(home_type)
+    is_bad_geocode = get_nested(record, ["geoRegion", "isBadGeocode"])
 
-    new_construction_available_plan_count = safe_get(record, "newConstruction", "availablePlanCnt")
-    new_construction_premier_builder = safe_get(record, "newConstruction", "premierBuilder")
+    home_status = clean_text(
+        record.get("home_status")
+        or record.get("status_type")
+        or record.get("homeStatus")
+        or get_nested(record, ["hdpData", "homeInfo", "homeStatus"])
+    )
 
-    price_per_sqft = safe_divide(price, square_feet)
+    status_text = clean_text(
+        record.get("status_text")
+        or record.get("statusText")
+        or get_nested(record, ["hdpData", "homeInfo", "statusText"])
+    )
 
-    zestimate = record.get("zestimate")
-    rent_zestimate = record.get("rent_zestimate")
+    home_type = normalize_home_type(
+        record.get("home_type")
+        or record.get("homeType")
+        or get_nested(record, ["hdpData", "homeInfo", "homeType"])
+    )
 
-    price_to_zestimate_pct = None
-    if zestimate:
-        price_to_zestimate_pct = safe_divide(price - zestimate, zestimate)
+    fixture_classification = clean_text(record.get("fixtureClassification"))
 
-    annual_rent_zestimate = None
-    gross_rent_yield = None
-    if rent_zestimate:
+    price = extract_price(record)
+
+    zestimate = to_float(
+        record.get("zestimate")
+        or record.get("zestimateAmount")
+        or get_nested(record, ["hdpData", "homeInfo", "zestimate"])
+    )
+
+    rent_zestimate = to_float(
+        record.get("rent_zestimate")
+        or record.get("rentZestimate")
+        or get_nested(record, ["hdpData", "homeInfo", "rentZestimate"])
+    )
+
+    beds = to_int_or_float(
+        record.get("beds")
+        or record.get("bedroomCount")
+        or get_nested(record, ["hdpData", "homeInfo", "bedrooms"])
+    )
+
+    baths = to_int_or_float(
+        record.get("baths")
+        or record.get("bathroomCount")
+        or get_nested(record, ["hdpData", "homeInfo", "bathrooms"])
+    )
+
+    square_feet = to_float(
+        record.get("square_feet")
+        or record.get("livingAreaSquareFeet")
+        or get_nested(record, ["hdpData", "homeInfo", "livingArea"])
+    )
+
+    lot_size = to_float(
+        record.get("lot_size")
+        or get_nested(record, ["lotArea", "size"])
+        or get_nested(record, ["hdpData", "homeInfo", "lotAreaValue"])
+    )
+
+    lot_size_units = clean_text(
+        record.get("lot_size_units")
+        or get_nested(record, ["lotArea", "sizeUnits"])
+        or get_nested(record, ["hdpData", "homeInfo", "lotAreaUnit"])
+    )
+
+    new_construction_available_plan_count = to_float(
+        get_nested(record, ["newConstruction", "availablePlanCnt"], default=0)
+    )
+
+    new_construction_premier_builder = get_nested(
+        record,
+        ["newConstruction", "premierBuilder"],
+        default=False,
+    )
+
+    has_open_house = record.get("hasOpenHouse")
+    has_vr_model = record.get("hasVRModel")
+
+    title = clean_text(record.get("title"))
+
+    zillow_url = clean_text(
+        record.get("zillow_url")
+        or record.get("homeDetailsPageUrl")
+        or get_nested(record, ["hdpData", "homeInfo", "homeDetailsPageUrl"])
+    )
+
+    search_date = clean_text(metadata.get("search_date")) or str(date.today())
+    data_source = clean_text(metadata.get("source")) or "zillow_connector"
+
+    if price is not None and square_feet not in (None, 0):
+        price_per_sqft = price / square_feet
+    else:
+        price_per_sqft = None
+
+    if price is not None and zestimate not in (None, 0):
+        price_to_zestimate_pct = (price - zestimate) / zestimate
+    else:
+        price_to_zestimate_pct = None
+
+    if rent_zestimate is not None:
         annual_rent_zestimate = rent_zestimate * 12
-        gross_rent_yield = safe_divide(annual_rent_zestimate, price)
+    else:
+        annual_rent_zestimate = None
+
+    if annual_rent_zestimate is not None and price not in (None, 0):
+        gross_rent_yield = annual_rent_zestimate / price
+    else:
+        gross_rent_yield = None
+
+    distance_from_02131_miles = haversine_distance_miles(latitude, longitude)
+    outside_target_radius = is_outside_radius(distance_from_02131_miles)
 
     normalized = {
-        "property_id": zpid,
+        "property_id": property_id,
         "zpid": zpid,
         "address": address,
         "city": city,
         "state": state,
-        "zip_code": str(zip_code) if zip_code is not None else None,
+        "zip_code": zip_code,
         "latitude": latitude,
         "longitude": longitude,
-        "is_bad_geocode": safe_get(record, "geoRegion", "isBadGeocode"),
-        "home_status": record.get("status_type"),
-        "status_text": record.get("status_text"),
+        "is_bad_geocode": is_bad_geocode,
+        "distance_from_02131_miles": (
+            round(distance_from_02131_miles, 2)
+            if distance_from_02131_miles is not None
+            else None
+        ),
+        "outside_target_radius": outside_target_radius,
+        "home_status": home_status,
+        "status_text": status_text,
         "home_type": home_type,
-        "fixture_classification": record.get("fixtureClassification"),
+        "fixture_classification": fixture_classification,
         "price": price,
         "zestimate": zestimate,
         "rent_zestimate": rent_zestimate,
@@ -186,84 +397,135 @@ def normalize_record(item: dict[str, Any], search_date: str | None = None) -> di
         "square_feet": square_feet,
         "lot_size": lot_size,
         "lot_size_units": lot_size_units,
-        "price_per_sqft": price_per_sqft,
-        "price_to_zestimate_pct": price_to_zestimate_pct,
+        "price_per_sqft": (
+            round(price_per_sqft, 2)
+            if price_per_sqft is not None
+            else None
+        ),
+        "price_to_zestimate_pct": (
+            round(price_to_zestimate_pct, 4)
+            if price_to_zestimate_pct is not None
+            else None
+        ),
         "annual_rent_zestimate": annual_rent_zestimate,
-        "gross_rent_yield": gross_rent_yield,
+        "gross_rent_yield": (
+            round(gross_rent_yield, 4)
+            if gross_rent_yield is not None
+            else None
+        ),
         "new_construction_available_plan_count": new_construction_available_plan_count,
         "new_construction_premier_builder": new_construction_premier_builder,
-        "has_open_house": record.get("hasOpenHouse"),
-        "has_vr_model": record.get("hasVRModel"),
-        "title": record.get("title"),
-        "zillow_url": url,
+        "has_open_house": has_open_house,
+        "has_vr_model": has_vr_model,
+        "title": title,
+        "zillow_url": zillow_url,
         "search_date": search_date,
-        "data_source": "zillow_connector",
+        "data_source": data_source,
     }
-
-    normalized["missing_price"] = normalized["price"] is None
-    normalized["missing_square_feet"] = normalized["square_feet"] is None
-    normalized["missing_beds"] = normalized["beds"] is None
-    normalized["missing_baths"] = normalized["baths"] is None
-    normalized["missing_home_type"] = normalized["home_type"] is None
-    normalized["missing_lat_long"] = normalized["latitude"] is None or normalized["longitude"] is None
-    normalized["missing_zestimate"] = normalized["zestimate"] is None
-    normalized["missing_rent_zestimate"] = normalized["rent_zestimate"] is None
-    normalized["undisclosed_address"] = bool(address and "undisclosed" in address.lower())
-
-    normalized["invalid_price"] = normalized["price"] is None or normalized["price"] <= 0
-    normalized["invalid_square_feet"] = normalized["square_feet"] is None or normalized["square_feet"] <= 0
-
-    normalized["data_needs_review"] = any(
-        [
-            normalized["missing_price"],
-            normalized["missing_square_feet"],
-            normalized["missing_beds"],
-            normalized["missing_baths"],
-            normalized["missing_home_type"],
-            normalized["missing_lat_long"],
-            normalized["undisclosed_address"],
-            normalized["invalid_price"],
-            normalized["invalid_square_feet"],
-        ]
-    )
 
     return normalized
 
 
-def load_zillow_raw_json(path: str | Path) -> dict[str, Any]:
-    """Load raw Zillow JSON file."""
+def load_zillow_raw_json(path: str | Path = DEFAULT_RAW_PATH) -> dict[str, Any]:
+    """Load raw Zillow JSON from disk."""
     path = Path(path)
 
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    with path.open("r", encoding="utf-8") as file:
+        return json.load(file)
 
 
-def normalize_zillow_payload(payload: dict[str, Any]) -> pd.DataFrame:
-    """Normalize a Zillow search payload into a dataframe."""
-    search_date = payload.get("metadata", {}).get("search_date")
-    results = payload.get("results", [])
+def normalize_zillow_payload(payload: dict[str, Any] | list[Any]) -> pd.DataFrame:
+    """Normalize a raw Zillow payload into a dataframe."""
+    metadata = payload.get("metadata", {}) if isinstance(payload, dict) else {}
+    records = extract_records(payload)
 
-    rows = [normalize_record(item, search_date=search_date) for item in results]
-    df = pd.DataFrame(rows)
+    normalized_records = [
+        normalize_single_record(record, metadata=metadata)
+        for record in records
+    ]
 
-    if df.empty:
-        return df
+    df = pd.DataFrame(normalized_records)
 
-    df["possible_duplicate_address"] = (
-        df["address"].str.lower().duplicated(keep=False).fillna(False)
-    )
+    preferred_columns = [
+        "property_id",
+        "zpid",
+        "address",
+        "city",
+        "state",
+        "zip_code",
+        "latitude",
+        "longitude",
+        "is_bad_geocode",
+        "distance_from_02131_miles",
+        "outside_target_radius",
+        "home_status",
+        "status_text",
+        "home_type",
+        "fixture_classification",
+        "price",
+        "zestimate",
+        "rent_zestimate",
+        "beds",
+        "baths",
+        "square_feet",
+        "lot_size",
+        "lot_size_units",
+        "price_per_sqft",
+        "price_to_zestimate_pct",
+        "annual_rent_zestimate",
+        "gross_rent_yield",
+        "new_construction_available_plan_count",
+        "new_construction_premier_builder",
+        "has_open_house",
+        "has_vr_model",
+        "title",
+        "zillow_url",
+        "search_date",
+        "data_source",
+    ]
 
-    df["possible_duplicate_lat_long"] = (
-        df[["latitude", "longitude"]].duplicated(keep=False)
-        & df["latitude"].notna()
-        & df["longitude"].notna()
-    )
+    for column in preferred_columns:
+        if column not in df.columns:
+            df[column] = None
 
-    return df
+    return df[preferred_columns]
 
 
-def save_normalized_csv(df: pd.DataFrame, output_path: str | Path) -> None:
+def save_normalized_csv(
+    df: pd.DataFrame,
+    output_path: str | Path = DEFAULT_OUTPUT_PATH,
+) -> None:
     """Save normalized dataframe to CSV."""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_path, index=False)
+
+
+def main() -> None:
+    """Run field mapping directly for a quick manual test."""
+    payload = load_zillow_raw_json(DEFAULT_RAW_PATH)
+    df = normalize_zillow_payload(payload)
+    save_normalized_csv(df, DEFAULT_OUTPUT_PATH)
+
+    print(f"Loaded raw records: {len(extract_records(payload))}")
+    print(f"Normalized rows: {len(df)}")
+    print(f"Saved normalized CSV to: {DEFAULT_OUTPUT_PATH}")
+    print()
+    print(
+        df[
+            [
+                "address",
+                "city",
+                "home_type",
+                "price",
+                "square_feet",
+                "price_per_sqft",
+                "distance_from_02131_miles",
+                "outside_target_radius",
+            ]
+        ].head(10).to_string(index=False)
+    )
+
+
+if __name__ == "__main__":
+    main()

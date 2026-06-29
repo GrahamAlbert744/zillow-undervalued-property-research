@@ -1,116 +1,293 @@
 """
-Create a simple run summary report for the Zillow property pipeline.
+Create run summary report for the Zillow undervalued-property project.
+
+Purpose:
+- Summarize the current normalized Zillow property dataset.
+- Summarize data-quality results if available.
+- Avoid crashing when expected data-quality columns are missing.
 
 Inputs:
 - data/processed/all_properties_normalized.csv
-- outputs/tables/property_data_quality_flags.csv
-- outputs/tables/property_type_summary.csv
+- outputs/tables/property_data_quality_flags.csv, if available
+- outputs/tables/property_missingness_report.csv, if available
+- outputs/tables/property_type_summary.csv, if available
 
 Output:
 - outputs/reports/run_summary.md
 """
 
-from pathlib import Path
-import sys
+from __future__ import annotations
+
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
-
-# Make project root importable when running this script directly
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
 
 
 NORMALIZED_PATH = Path("data/processed/all_properties_normalized.csv")
 QUALITY_FLAGS_PATH = Path("outputs/tables/property_data_quality_flags.csv")
+MISSINGNESS_PATH = Path("outputs/tables/property_missingness_report.csv")
 PROPERTY_TYPE_PATH = Path("outputs/tables/property_type_summary.csv")
-OUTPUT_PATH = Path("outputs/reports/run_summary.md")
+REPORT_PATH = Path("outputs/reports/run_summary.md")
+
+
+def read_csv_if_exists(path: Path) -> pd.DataFrame | None:
+    """Read CSV if it exists; otherwise return None."""
+    if not path.exists():
+        return None
+
+    return pd.read_csv(path)
+
+
+def safe_count_true(df: pd.DataFrame, column: str) -> int:
+    """Count True values in a boolean-like column. Return 0 if missing."""
+    if column not in df.columns:
+        return 0
+
+    return int(df[column].fillna(False).astype(bool).sum())
+
+
+def safe_nonmissing_count(df: pd.DataFrame, column: str) -> int:
+    """Count non-missing values in a column. Return 0 if missing."""
+    if column not in df.columns:
+        return 0
+
+    return int(df[column].notna().sum())
+
+
+def safe_missing_count(df: pd.DataFrame, column: str) -> int:
+    """Count missing values in a column. Return 0 if missing."""
+    if column not in df.columns:
+        return 0
+
+    return int(df[column].isna().sum())
+
+
+def safe_median(df: pd.DataFrame, column: str) -> Any:
+    """Return rounded median if column exists and has data."""
+    if column not in df.columns:
+        return "not available"
+
+    numeric = pd.to_numeric(df[column], errors="coerce")
+
+    if numeric.dropna().empty:
+        return "not available"
+
+    return round(float(numeric.median()), 2)
+
+
+def merge_quality_flags(
+    normalized_df: pd.DataFrame,
+    quality_df: pd.DataFrame | None,
+) -> pd.DataFrame:
+    """
+    Add quality flag columns to normalized dataframe when available.
+
+    Strategy:
+    1. If quality file is missing, add fallback data_needs_review.
+    2. If quality file has property_id or zpid, merge by key.
+    3. If same number of rows, append missing quality columns positionally.
+    4. Otherwise, add fallback data_needs_review.
+    """
+    df = normalized_df.copy()
+
+    if quality_df is None or quality_df.empty:
+        if "data_needs_review" not in df.columns:
+            df["data_needs_review"] = False
+        return df
+
+    key_candidates = ["property_id", "zpid"]
+
+    for key in key_candidates:
+        if key in df.columns and key in quality_df.columns:
+            quality_columns = [
+                column
+                for column in quality_df.columns
+                if column not in df.columns or column == key
+            ]
+
+            merged = df.merge(
+                quality_df[quality_columns],
+                on=key,
+                how="left",
+            )
+
+            if "data_needs_review" not in merged.columns:
+                merged["data_needs_review"] = False
+
+            return merged
+
+    if len(df) == len(quality_df):
+        for column in quality_df.columns:
+            if column not in df.columns:
+                df[column] = quality_df[column].values
+
+        if "data_needs_review" not in df.columns:
+            df["data_needs_review"] = False
+
+        return df
+
+    if "data_needs_review" not in df.columns:
+        df["data_needs_review"] = False
+
+    return df
+
+
+def build_property_type_section(df: pd.DataFrame) -> str:
+    """Create markdown section for property type counts."""
+    if "home_type" not in df.columns:
+        return "Property type field not available.\n"
+
+    counts = (
+        df["home_type"]
+        .fillna("missing")
+        .value_counts()
+        .reset_index()
+    )
+
+    counts.columns = ["home_type", "count"]
+
+    lines = ["| Home type | Count |", "|---|---:|"]
+
+    for _, row in counts.iterrows():
+        lines.append(f"| {row['home_type']} | {int(row['count'])} |")
+
+    return "\n".join(lines) + "\n"
+
+
+def build_missingness_section(df: pd.DataFrame) -> str:
+    """Create markdown section for key missingness counts."""
+    key_columns = [
+        "address",
+        "price",
+        "beds",
+        "baths",
+        "square_feet",
+        "home_type",
+        "latitude",
+        "longitude",
+        "zestimate",
+        "rent_zestimate",
+        "distance_from_02131_miles",
+    ]
+
+    lines = ["| Field | Missing count |", "|---|---:|"]
+
+    for column in key_columns:
+        if column in df.columns:
+            lines.append(f"| `{column}` | {safe_missing_count(df, column)} |")
+        else:
+            lines.append(f"| `{column}` | column not available |")
+
+    return "\n".join(lines) + "\n"
 
 
 def main() -> None:
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if not NORMALIZED_PATH.exists():
+        raise FileNotFoundError(
+            f"Normalized file not found: {NORMALIZED_PATH}. "
+            "Run scripts\\build_property_database.py first."
+        )
 
-    df = pd.read_csv(NORMALIZED_PATH)
-    flags = pd.read_csv(QUALITY_FLAGS_PATH)
-    property_types = pd.read_csv(PROPERTY_TYPE_PATH)
+    normalized_df = pd.read_csv(NORMALIZED_PATH)
+    quality_df = read_csv_if_exists(QUALITY_FLAGS_PATH)
+
+    df = merge_quality_flags(normalized_df, quality_df)
 
     total_records = len(df)
-    records_needing_review = int(df["data_needs_review"].fillna(False).sum())
+    records_needing_review = safe_count_true(df, "data_needs_review")
+    outside_radius_count = safe_count_true(df, "outside_target_radius")
+    missing_lat_long_count = safe_count_true(df, "missing_lat_long")
 
-    price_min = df["price"].min()
-    price_median = df["price"].median()
-    price_max = df["price"].max()
+    if missing_lat_long_count == 0:
+        missing_lat_long_count = (
+            safe_missing_count(df, "latitude")
+            + safe_missing_count(df, "longitude")
+        )
 
-    sqft_min = df["square_feet"].min()
-    sqft_median = df["square_feet"].median()
-    sqft_max = df["square_feet"].max()
+    run_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    lines = []
-    lines.append("# Zillow Pipeline Run Summary")
-    lines.append("")
-    lines.append(f"Run created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    lines.append("")
-    lines.append("## Purpose")
-    lines.append("")
-    lines.append(
-        "This report summarizes the first Zillow data pipeline run. "
-        "The goal is to verify that raw Zillow sample data can be normalized "
-        "and checked for basic data-quality issues before any scoring is attempted."
-    )
-    lines.append("")
-    lines.append("## Input and Output Files")
-    lines.append("")
-    lines.append("- Input raw file: `data/raw/zillow_raw_search_20260624.json`")
-    lines.append("- Normalized output: `data/processed/all_properties_normalized.csv`")
-    lines.append("- Missingness report: `outputs/tables/property_missingness_report.csv`")
-    lines.append("- Quality flags report: `outputs/tables/property_data_quality_flags.csv`")
-    lines.append("- Property type summary: `outputs/tables/property_type_summary.csv`")
-    lines.append("- Records needing review: `outputs/tables/properties_needing_review.csv`")
-    lines.append("")
-    lines.append("## Record Counts")
-    lines.append("")
-    lines.append(f"- Total normalized records: {total_records}")
-    lines.append(f"- Records needing manual review: {records_needing_review}")
-    lines.append("")
-    lines.append("## Price Summary")
-    lines.append("")
-    lines.append(f"- Minimum price: ${price_min:,.0f}")
-    lines.append(f"- Median price: ${price_median:,.0f}")
-    lines.append(f"- Maximum price: ${price_max:,.0f}")
-    lines.append("")
-    lines.append("## Square Footage Summary")
-    lines.append("")
-    lines.append(f"- Minimum square feet: {sqft_min:,.0f}")
-    lines.append(f"- Median square feet: {sqft_median:,.0f}")
-    lines.append(f"- Maximum square feet: {sqft_max:,.0f}")
-    lines.append("")
-    lines.append("## Property Types")
-    lines.append("")
-    lines.append(property_types.to_markdown(index=False))
-    lines.append("")
-    lines.append("## Data-Quality Flags")
-    lines.append("")
-    lines.append(flags.to_markdown(index=False))
-    lines.append("")
-    lines.append("## Interpretation")
-    lines.append("")
-    lines.append(
-        "This run confirms that the project can move from raw Zillow sample data "
-        "to a normalized dataframe and basic data-quality outputs."
-    )
-    lines.append("")
-    lines.append("Do not score properties yet.")
-    lines.append("")
-    lines.append("Next recommended step:")
-    lines.append("")
-    lines.append(
-        "Review the normalized CSV and data-quality reports, then update "
-        "`docs/data_dictionary.md` and `docs/zillow_field_notes.md` based on what was observed."
-    )
+    report_lines = [
+        "# Zillow Property Pipeline Run Summary",
+        "",
+        f"Run created: `{run_time}`",
+        "",
+        "## Purpose",
+        "",
+        (
+            "Summarize the current Zillow property pipeline output. "
+            "This report is for data validation and workflow tracking only. "
+            "It does not recommend buying or selling any property."
+        ),
+        "",
+        "## Input files",
+        "",
+        f"- Normalized properties: `{NORMALIZED_PATH}`",
+        f"- Data-quality flags: `{QUALITY_FLAGS_PATH}` "
+        f"({'found' if QUALITY_FLAGS_PATH.exists() else 'not found'})",
+        f"- Missingness report: `{MISSINGNESS_PATH}` "
+        f"({'found' if MISSINGNESS_PATH.exists() else 'not found'})",
+        f"- Property type summary: `{PROPERTY_TYPE_PATH}` "
+        f"({'found' if PROPERTY_TYPE_PATH.exists() else 'not found'})",
+        "",
+        "## Core counts",
+        "",
+        f"- Total normalized records: **{total_records}**",
+        f"- Records needing review: **{records_needing_review}**",
+        f"- Records outside 25-mile radius: **{outside_radius_count}**",
+        f"- Records missing latitude/longitude: **{missing_lat_long_count}**",
+        "",
+        "## Core field availability",
+        "",
+        f"- Price values available: **{safe_nonmissing_count(df, 'price')}**",
+        f"- Square-foot values available: **{safe_nonmissing_count(df, 'square_feet')}**",
+        f"- Zestimate values available: **{safe_nonmissing_count(df, 'zestimate')}**",
+        f"- Rent Zestimate values available: **{safe_nonmissing_count(df, 'rent_zestimate')}**",
+        f"- Distance-from-02131 values available: **{safe_nonmissing_count(df, 'distance_from_02131_miles')}**",
+        "",
+        "## Median metrics",
+        "",
+        f"- Median listing price: **{safe_median(df, 'price')}**",
+        f"- Median square feet: **{safe_median(df, 'square_feet')}**",
+        f"- Median price per sqft: **{safe_median(df, 'price_per_sqft')}**",
+        f"- Median distance from 02131: **{safe_median(df, 'distance_from_02131_miles')} miles**",
+        "",
+        "## Property type counts",
+        "",
+        build_property_type_section(df),
+        "",
+        "## Missingness summary",
+        "",
+        build_missingness_section(df),
+        "",
+        "## Important interpretation notes",
+        "",
+        "- This pipeline is still pre-scoring.",
+        "- Distance validation is now part of the normalized property file if `src/geocoding.py` is available.",
+        "- Missing fields should be flagged, not guessed.",
+        "- `data_needs_review` may come from the data-quality file rather than the normalized file.",
+        "- Properties outside the 25-mile radius should be excluded from future main rankings.",
+        "",
+        "## Next recommended step",
+        "",
+        (
+            "Confirm that `distance_from_02131_miles` and `outside_target_radius` "
+            "are present in `all_properties_normalized.csv`, then update "
+            "`docs/data_dictionary.md` if needed."
+        ),
+        "",
+    ]
 
-    OUTPUT_PATH.write_text("\n".join(lines), encoding="utf-8")
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"Saved run summary to: {OUTPUT_PATH}")
+    with REPORT_PATH.open("w", encoding="utf-8") as file:
+        file.write("\n".join(report_lines))
+
+    print(f"Saved run summary to: {REPORT_PATH}")
+    print(f"Total records: {total_records}")
+    print(f"Records needing review: {records_needing_review}")
+    print(f"Outside-radius records: {outside_radius_count}")
 
 
 if __name__ == "__main__":
