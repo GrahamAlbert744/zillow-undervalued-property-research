@@ -844,3 +844,121 @@ Do not build sale-outcome backtesting yet.
 Use this pull only to confirm that a recently sold search universe exists.
 
 Next technical step should remain local pipeline strengthening before scoring or backtesting.
+
+
+---
+
+# Search Pull 4B — Recently Sold Widget-State Field Audit
+
+## Pull date
+
+2026-06-29
+
+## Purpose
+
+Review the enhanced Zillow widget-state fields returned from the recently sold search.
+
+This is a follow-up to Search Pull 4.
+
+The goal is to determine whether recently sold results expose enough structured data to support future sale-outcome tracking.
+
+Do not build backtesting yet.
+
+## Important finding
+
+The basic search response returned search-level fields such as address, city, state, ZIP code, latitude, longitude, beds, baths, square feet, home type, price, and Zillow URL.
+
+However, the Zillow widget state also exposed additional useful fields for many recently sold records.
+
+## Additional fields observed in widget state
+
+| Field | Observed? | Notes |
+|---|---:|---|
+| `zpid` | Yes | Strong candidate for property identifier. |
+| `statusType` | Yes | Observed `SOLD` in widget state. |
+| `statusText` | Yes | Observed `Sold`. |
+| `price` | Yes | Display-formatted sale/list price, sometimes `$650,000`, sometimes `1.2M`. |
+| `priceLabel` | Yes | Short formatted price label, such as `$650K`. |
+| `countryCurrency` | Yes | Observed `usd`. |
+| `address` | Yes | Full display address, sometimes with duplicated ZIP. |
+| `beds` | Yes | Bedroom count. |
+| `baths` | Yes | Bathroom count. |
+| `area` | Yes | Living area square feet. |
+| `latLong.latitude` | Yes | Required for distance validation. |
+| `latLong.longitude` | Yes | Required for distance validation. |
+| `hdpData.homeInfo.homeStatus` | Yes | Often `RECENTLY_SOLD`, but one observed case conflicted with top-level sold status. |
+| `hdpData.homeInfo.homeType` | Yes | Observed `SINGLE_FAMILY`, `CONDO`, `TOWNHOUSE`, `MULTI_FAMILY`. |
+| `hdpData.homeInfo.zestimate` | Often | Available for many sold properties, but missing for some. |
+| `hdpData.homeInfo.rentZestimate` | Often | Available for many sold properties, but missing for some. |
+| `buildingName` | Sometimes | Mostly condos/townhomes. |
+| `lotId` | Sometimes | Mostly condos/townhomes or buildings. |
+
+## Status consistency issue
+
+At least one recently sold widget record showed a possible inconsistency:
+
+- top-level `statusType`: `SOLD`
+- top-level `statusText`: `Sold`
+- nested `hdpData.homeInfo.homeStatus`: `FOR_SALE`
+
+This means future lifecycle logic should not trust a single status field blindly.
+
+## MVP implication
+
+For recently sold records, create future fields such as:
+
+- `zillow_recently_sold_filter_match`
+- `sold_search_status_type`
+- `sold_search_status_text`
+- `nested_home_status`
+- `status_conflict_flag`
+- `sold_search_price`
+- `sold_search_price_label`
+- `sold_search_zestimate`
+- `sold_search_rent_zestimate`
+
+## Sale-outcome caution
+
+The recently sold widget state makes sale-outcome tracking more realistic, but it still does not fully validate:
+
+- exact sale date
+- original list price
+- last list price before sale
+- price history
+- days on market
+- whether `price` is confirmed final sale price
+- whether the record represents a clean resale, new construction, unit sale, or other transaction type
+
+## Future validation rule
+
+Before backtesting, require one of the following:
+
+1. A confirmed sale date and final sale price from Zillow detail or another reliable source.
+2. A manual validation flag confirming that the sold search price is the final sale price.
+3. A secondary public-record check.
+
+## Decision
+
+Do not build model backtesting yet.
+
+However, the recently sold widget state is strong enough to justify creating a structured `recently_sold_probe_results.csv` in a future coding phase.
+
+Next recommended coding phase:
+
+Create a small manually entered recently sold probe table with:
+
+- zpid
+- address
+- sold_search_price
+- statusType
+- statusText
+- nested_home_status
+- zestimate
+- rent_zestimate
+- beds
+- baths
+- square_feet
+- latitude
+- longitude
+- status_conflict_flag
+- sale_outcome_needs_validation
