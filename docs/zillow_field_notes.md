@@ -1165,3 +1165,100 @@ Backtesting still requires:
 Do not build model backtesting yet.
 
 The next safe coding step is to create a structured recently sold detail/history probe table that records tax/parcel fields and Zestimate-history availability while keeping sale-outcome fields marked as unconfirmed.
+
+---
+
+# Detail Probe 6 — Recently Sold Rent Zestimate Validation
+
+## Probe date
+
+2026-06-29
+
+## Purpose
+
+Test whether Zillow can return Rent Zestimate values for recently sold or off-market properties.
+
+This follows the recently sold search probe, detail validation, and Zestimate-history validation.
+
+The goal is to determine whether Rent Zestimate can support income-context fields in future research notes and enrichment tables.
+
+Do not build scoring or backtesting yet.
+
+## Properties tested
+
+| Property | Rent Zestimate returned? | Rent Zestimate |
+|---|---:|---:|
+| 11 Eugenia Rd, Roslindale, MA 02131 | Yes | $3,294 |
+| 114 Curve St, Dedham, MA 02026 | Yes | $4,123 |
+| 56 School St, Somerville, MA 02143 | Yes | $4,784 |
+
+## Fields returned
+
+The Rent Zestimate tool returned:
+
+- address
+- Rent Zestimate value
+- Zillow Zestimate disclaimer text
+
+## Fields not returned
+
+The Rent Zestimate tool did not return:
+
+- rent range
+- rent history
+- unit-level rent breakdown
+- vacancy assumptions
+- expense assumptions
+- confirmed lease data
+- final sale price
+- sale date
+
+## Important caution
+
+Zillow states that the Zestimate is Zillow's estimate of a home's market value. It incorporates public, MLS, and user-submitted data, including listing information, sale prices, tax assessor data, home facts, location, and market trends. It is not an appraisal and should not be used as a substitute for one.
+
+Rent Zestimate should be treated as a rough income-context signal, not confirmed market rent.
+
+## MVP implication
+
+Future table fields to add:
+
+- `rent_zestimate_available`
+- `rent_zestimate`
+- `annual_rent_zestimate`
+- `gross_rent_yield_using_sold_search_price`
+- `rent_zestimate_needs_validation`
+
+## Scoring implication
+
+Do not use Rent Zestimate as a dominant score driver yet.
+
+Potential future uses:
+
+- rough income-context field
+- gross-rent-yield screen
+- multifamily income-context review
+- research-note prompt input
+
+## Backtesting implication
+
+Rent Zestimate does not solve sale-outcome validation.
+
+Backtesting still requires:
+
+- confirmed final sale price
+- sale date
+- model estimate frozen before sale
+- model version used at scoring time
+
+## Decision
+
+Do not build model backtesting yet.
+
+The next safe coding step is to create a structured recently sold enrichment probe table that combines:
+
+- recently sold search fields
+- tax / parcel detail availability
+- Zestimate-history availability
+- Rent Zestimate availability
+- sale-outcome validation flags
