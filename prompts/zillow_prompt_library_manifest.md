@@ -1,0 +1,34 @@
+# Zillow Prompt Library Manifest
+
+- `00_prompt_library_README.md`
+- `01_zillow_project_brief.md`
+- `02_zillow_demo_search_02131.md`
+- `03_zillow_search_field_audit.md`
+- `04_create_local_raw_sample.md`
+- `05_build_field_mapping_normalizer.md`
+- `06_build_data_quality_checks.md`
+- `07_create_run_summary.md`
+- `08_zillow_detail_pull.md`
+- `09_detail_field_audit.md`
+- `10_create_zillow_detail_probe_table.md`
+- `11_zillow_radius_expansion.md`
+- `12_price_reduction_filter_probe.md`
+- `13_active_listing_detail_limitation_probe.md`
+- `14_geography_validation_build.md`
+- `15_recently_sold_search_probe.md`
+- `16_recently_sold_widget_state_audit.md`
+- `17_recently_sold_probe_table.md`
+- `18_recently_sold_detail_validation.md`
+- `19_recently_sold_zestimate_history_probe.md`
+- `20_recently_sold_rent_zestimate_probe.md`
+- `21_recently_sold_enrichment_table.md`
+- `22_duplicate_review_prompt.md`
+- `23_conservative_scoring_model.md`
+- `24_future_status_refresh.md`
+- `25_future_sold_outcome_check.md`
+- `26_future_comparable_sales_probe.md`
+- `27_future_status_tracker_module.md`
+- `28_future_sale_outcome_tracking.md`
+- `29_future_backtesting_and_calibration.md`
+- `30_future_streamlit_lifecycle_dashboard.md`
+- `31_future_weekly_refresh.md`
