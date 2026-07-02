@@ -1,11 +1,15 @@
 """
-Create recently sold enrichment probe table.
+Create recently sold enrichment probe tables.
 
 Purpose:
-- Combine recently sold search observations with enrichment fields from
-  Zillow detail, Zestimate-history, and Rent Zestimate probes.
-- Keep sale-outcome fields conservative and unconfirmed.
-- Prepare for future lifecycle tracking without building scoring or backtesting.
+- Combine recently sold search-level fields with observed enrichment availability.
+- Preserve tax/parcel detail availability.
+- Preserve Zestimate-history availability.
+- Preserve Rent Zestimate availability.
+- Preserve conservative sale-outcome validation flags.
+- Do NOT build scoring.
+- Do NOT build backtesting.
+- Do NOT treat sold-search price as confirmed final sale price.
 
 Outputs:
 - data/interim/recently_sold_enrichment_probe_results.csv
@@ -19,22 +23,22 @@ import sys
 
 import pandas as pd
 
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.geocoding import haversine_distance_miles, is_outside_radius
+try:
+    from src.geocoding import haversine_distance_miles, is_outside_radius
+except ModuleNotFoundError:
+    from geocoding import haversine_distance_miles, is_outside_radius
 
 
-INTERIM_OUTPUT_PATH = Path("data/interim/recently_sold_enrichment_probe_results.csv")
-SUMMARY_OUTPUT_PATH = Path("outputs/tables/recently_sold_enrichment_probe_summary.csv")
-
-
-RECENTLY_SOLD_ENRICHMENT_PROBES = [
+RECENTLY_SOLD_ENRICHMENT_RESULTS = [
     {
-        "probe_date": "2026-07-02",
+        "probe_date": "2026-06-29",
         "property_id": "59144560",
         "zpid": "59144560",
-        "address": "11 Eugenia Rd",
+        "address": "11 Eugenia Rd, Roslindale, MA 02131",
         "city": "Roslindale",
         "state": "MA",
         "zip_code": "02131",
@@ -47,33 +51,53 @@ RECENTLY_SOLD_ENRICHMENT_PROBES = [
         "lot_size_units": "Square Feet",
         "latitude": 42.279408,
         "longitude": -71.137726,
-        "parcel_id": "ROSLW20P00563S000",
-        "county": "Suffolk County",
-        "county_fips": "25025",
-        "tax_assessed_value": 623100,
-        "tax_assessed_year": 2025,
-        "property_tax_rate": 0.65,
+        "status_type": "SOLD",
+        "status_text": "Sold",
+        "nested_home_status": None,
+        "zillow_url": "https://www.zillow.com/homedetails/11-Eugenia-Rd-Roslindale-MA-02131/59144560_zpid",
+
+        # Recently sold detail validation
+        "recently_sold_search_available": True,
+        "recently_sold_detail_available": True,
         "tax_detail_available": True,
+        "parcel_detail_available": True,
         "tax_history_available": True,
         "foreclosure_flag_available": True,
-        "is_bank_owned": False,
-        "was_non_retail_auction": False,
-        "is_undisclosed_address": False,
-        "is_non_owner_occupied": False,
-        "current_zestimate": 834900,
+        "undisclosed_address_flag_available": True,
+        "non_owner_occupied_flag_available": True,
+
+        # Specific tax/parcel fields observed as available in detail payloads.
+        # Values are not stored unless cleanly confirmed.
+        "parcel_id_available": True,
+        "county_available": True,
+        "county_fips_available": True,
+        "tax_assessed_value_available": True,
+        "tax_assessed_year_available": True,
+        "property_tax_rate_available": True,
+        "parcel_id": None,
+        "county": None,
+        "county_fips": None,
+        "tax_assessed_value": None,
+        "tax_assessed_year": None,
+        "property_tax_rate": None,
+
+        # Zestimate-history validation
         "zestimate_history_available": True,
+        "current_zestimate": 834900,
         "zestimate_history_start_date": "2021-06-30",
         "zestimate_history_end_date": "2026-05-31",
-        "rent_zestimate": 3294,
+        "zestimate_history_needs_validation": True,
+
+        # Rent Zestimate validation
         "rent_zestimate_available": True,
-        "zillow_url": "https://www.zillow.com/homedetails/11-Eugenia-Rd-Roslindale-MA-02131/59144560_zpid",
-        "notes": "Recently sold/off-market enrichment probe. Search price observed, but final sale price/date not independently confirmed.",
+        "rent_zestimate": 3294,
+        "rent_zestimate_needs_validation": True,
     },
     {
-        "probe_date": "2026-07-02",
+        "probe_date": "2026-06-29",
         "property_id": "57438428",
         "zpid": "57438428",
-        "address": "114 Curve St",
+        "address": "114 Curve St, Dedham, MA 02026",
         "city": "Dedham",
         "state": "MA",
         "zip_code": "02026",
@@ -86,33 +110,48 @@ RECENTLY_SOLD_ENRICHMENT_PROBES = [
         "lot_size_units": "Acres",
         "latitude": 42.252098,
         "longitude": -71.16033,
-        "parcel_id": "DEDHM0078L0001",
-        "county": "Norfolk County",
-        "county_fips": "25021",
-        "tax_assessed_value": 650900,
-        "tax_assessed_year": 2025,
-        "property_tax_rate": 1.02,
+        "status_type": "SOLD",
+        "status_text": "Sold",
+        "nested_home_status": None,
+        "zillow_url": "https://www.zillow.com/homedetails/114-Curve-St-Dedham-MA-02026/57438428_zpid",
+
+        "recently_sold_search_available": True,
+        "recently_sold_detail_available": True,
         "tax_detail_available": True,
+        "parcel_detail_available": True,
         "tax_history_available": True,
         "foreclosure_flag_available": True,
-        "is_bank_owned": False,
-        "was_non_retail_auction": False,
-        "is_undisclosed_address": False,
-        "is_non_owner_occupied": False,
-        "current_zestimate": 808900,
+        "undisclosed_address_flag_available": True,
+        "non_owner_occupied_flag_available": True,
+
+        "parcel_id_available": True,
+        "county_available": True,
+        "county_fips_available": True,
+        "tax_assessed_value_available": True,
+        "tax_assessed_year_available": True,
+        "property_tax_rate_available": True,
+        "parcel_id": None,
+        "county": None,
+        "county_fips": None,
+        "tax_assessed_value": None,
+        "tax_assessed_year": None,
+        "property_tax_rate": None,
+
         "zestimate_history_available": True,
+        "current_zestimate": 808900,
         "zestimate_history_start_date": "2021-06-30",
         "zestimate_history_end_date": "2026-05-31",
-        "rent_zestimate": 4123,
+        "zestimate_history_needs_validation": True,
+
         "rent_zestimate_available": True,
-        "zillow_url": "https://www.zillow.com/homedetails/114-Curve-St-Dedham-MA-02026/57438428_zpid",
-        "notes": "Recently sold/off-market enrichment probe. Search price observed, but final sale price/date not independently confirmed.",
+        "rent_zestimate": 4123,
+        "rent_zestimate_needs_validation": True,
     },
     {
-        "probe_date": "2026-07-02",
+        "probe_date": "2026-06-29",
         "property_id": "56330933",
         "zpid": "56330933",
-        "address": "56 School St",
+        "address": "56 School St, Somerville, MA 02143",
         "city": "Somerville",
         "state": "MA",
         "zip_code": "02143",
@@ -125,43 +164,49 @@ RECENTLY_SOLD_ENRICHMENT_PROBES = [
         "lot_size_units": "Square Feet",
         "latitude": 42.38411,
         "longitude": -71.10087,
-        "parcel_id": "SOMEM52BBL14",
-        "county": "Middlesex County",
-        "county_fips": "25017",
-        "tax_assessed_value": 1328200,
-        "tax_assessed_year": 2025,
-        "property_tax_rate": 1.01,
+        "status_type": "SOLD",
+        "status_text": "Sold",
+        "nested_home_status": None,
+        "zillow_url": "https://www.zillow.com/homedetails/56-School-St-Somerville-MA-02143/56330933_zpid",
+
+        "recently_sold_search_available": True,
+        "recently_sold_detail_available": True,
         "tax_detail_available": True,
+        "parcel_detail_available": True,
         "tax_history_available": True,
         "foreclosure_flag_available": True,
-        "is_bank_owned": False,
-        "was_non_retail_auction": False,
-        "is_undisclosed_address": False,
-        "is_non_owner_occupied": False,
-        "current_zestimate": 1610200,
+        "undisclosed_address_flag_available": True,
+        "non_owner_occupied_flag_available": True,
+
+        "parcel_id_available": True,
+        "county_available": True,
+        "county_fips_available": True,
+        "tax_assessed_value_available": True,
+        "tax_assessed_year_available": True,
+        "property_tax_rate_available": True,
+        "parcel_id": None,
+        "county": None,
+        "county_fips": None,
+        "tax_assessed_value": None,
+        "tax_assessed_year": None,
+        "property_tax_rate": None,
+
         "zestimate_history_available": True,
+        "current_zestimate": 1610200,
         "zestimate_history_start_date": "2023-06-30",
         "zestimate_history_end_date": "2026-05-31",
-        "rent_zestimate": 4784,
+        "zestimate_history_needs_validation": True,
+
         "rent_zestimate_available": True,
-        "zillow_url": "https://www.zillow.com/homedetails/56-School-St-Somerville-MA-02143/56330933_zpid",
-        "notes": "Recently sold/off-market enrichment probe. Search price observed, but final sale price/date not independently confirmed.",
+        "rent_zestimate": 4784,
+        "rent_zestimate_needs_validation": True,
     },
 ]
 
 
-def add_derived_fields(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-
-    df["property_key"] = (
-        df["address"].astype(str)
-        + ", "
-        + df["city"].astype(str)
-        + ", "
-        + df["state"].astype(str)
-        + " "
-        + df["zip_code"].astype(str)
-    )
+def create_enrichment_dataframe() -> pd.DataFrame:
+    """Create recently sold enrichment probe dataframe."""
+    df = pd.DataFrame(RECENTLY_SOLD_ENRICHMENT_RESULTS)
 
     df["sold_search_price_per_sqft"] = (
         df["sold_search_price"] / df["square_feet"]
@@ -179,10 +224,7 @@ def add_derived_fields(df: pd.DataFrame) -> pd.DataFrame:
     ).round(4)
 
     df["distance_from_02131_miles"] = df.apply(
-        lambda row: haversine_distance_miles(
-            row.get("latitude"),
-            row.get("longitude"),
-        ),
+        lambda row: haversine_distance_miles(row["latitude"], row["longitude"]),
         axis=1,
     )
 
@@ -192,86 +234,54 @@ def add_derived_fields(df: pd.DataFrame) -> pd.DataFrame:
         is_outside_radius
     )
 
-    # Conservative sale-outcome fields.
-    df["confirmed_final_sale_price"] = None
-    df["confirmed_sale_date"] = None
+    df["status_conflict_flag"] = (
+        df["nested_home_status"].notna()
+        & ~df["nested_home_status"].isin(["SOLD", "RECENTLY_SOLD"])
+    )
+
+    # Required conservative sale-outcome flags.
     df["sale_date_available"] = False
     df["final_sale_price_confirmed"] = False
     df["sale_outcome_needs_validation"] = True
+    df["confirmed_final_sale_price"] = None
+    df["confirmed_sale_date"] = None
 
-    # Backtesting must remain locked until sale outcomes are confirmed.
-    df["eligible_for_backtesting"] = False
+    # Additional conservative flags.
+    df["sold_search_price_needs_validation"] = True
+    df["sold_search_price_is_confirmed_final_sale_price"] = False
+    df["original_list_price_available"] = False
+    df["last_list_price_before_sale_available"] = False
+    df["days_on_market_available"] = False
+    df["price_history_available"] = False
+    df["backtesting_ready"] = False
 
-    df["enrichment_data_needs_review"] = (
-        df["sale_outcome_needs_validation"].fillna(True).astype(bool)
-        | df["outside_target_radius"].fillna(False).astype(bool)
-        | df["confirmed_final_sale_price"].isna()
-        | df["confirmed_sale_date"].isna()
+    df["enrichment_notes"] = (
+        "Recently sold search/detail/Zestimate/Rent Zestimate enrichment available; "
+        "sale date and final sale price remain unconfirmed."
     )
 
-    preferred_columns = [
-        "probe_date",
-        "property_id",
-        "zpid",
-        "property_key",
-        "address",
-        "city",
-        "state",
-        "zip_code",
-        "home_type",
-        "sold_search_price",
-        "sold_search_price_per_sqft",
-        "beds",
-        "baths",
-        "square_feet",
-        "lot_size",
-        "lot_size_units",
-        "latitude",
-        "longitude",
-        "distance_from_02131_miles",
-        "outside_target_radius",
-        "parcel_id",
-        "county",
-        "county_fips",
-        "tax_assessed_value",
-        "tax_assessed_year",
-        "property_tax_rate",
-        "tax_detail_available",
-        "tax_history_available",
-        "foreclosure_flag_available",
-        "is_bank_owned",
-        "was_non_retail_auction",
-        "is_undisclosed_address",
-        "is_non_owner_occupied",
-        "current_zestimate",
-        "zestimate_history_available",
-        "zestimate_history_start_date",
-        "zestimate_history_end_date",
-        "sold_search_price_to_current_zestimate_pct",
-        "rent_zestimate",
-        "rent_zestimate_available",
-        "annual_rent_zestimate",
-        "gross_rent_yield_using_sold_search_price",
-        "confirmed_final_sale_price",
-        "confirmed_sale_date",
-        "sale_date_available",
-        "final_sale_price_confirmed",
-        "sale_outcome_needs_validation",
-        "eligible_for_backtesting",
-        "enrichment_data_needs_review",
-        "zillow_url",
-        "notes",
-    ]
-
-    return df[preferred_columns]
+    return df
 
 
 def create_summary(df: pd.DataFrame) -> pd.DataFrame:
-    summary_rows = [
-        {"metric": "record_count", "value": len(df)},
+    """Create summary table for recently sold enrichment probe."""
+    rows = [
+        {"metric": "properties_enriched", "value": len(df)},
+        {
+            "metric": "recently_sold_search_available_count",
+            "value": int(df["recently_sold_search_available"].sum()),
+        },
+        {
+            "metric": "recently_sold_detail_available_count",
+            "value": int(df["recently_sold_detail_available"].sum()),
+        },
         {
             "metric": "tax_detail_available_count",
             "value": int(df["tax_detail_available"].sum()),
+        },
+        {
+            "metric": "parcel_detail_available_count",
+            "value": int(df["parcel_detail_available"].sum()),
         },
         {
             "metric": "zestimate_history_available_count",
@@ -294,8 +304,8 @@ def create_summary(df: pd.DataFrame) -> pd.DataFrame:
             "value": int(df["sale_outcome_needs_validation"].sum()),
         },
         {
-            "metric": "eligible_for_backtesting_count",
-            "value": int(df["eligible_for_backtesting"].sum()),
+            "metric": "backtesting_ready_count",
+            "value": int(df["backtesting_ready"].sum()),
         },
         {
             "metric": "outside_target_radius_count",
@@ -310,52 +320,65 @@ def create_summary(df: pd.DataFrame) -> pd.DataFrame:
             "value": round(float(df["sold_search_price_per_sqft"].median()), 2),
         },
         {
+            "metric": "median_current_zestimate",
+            "value": round(float(df["current_zestimate"].median()), 2),
+        },
+        {
+            "metric": "median_rent_zestimate",
+            "value": round(float(df["rent_zestimate"].median()), 2),
+        },
+        {
             "metric": "median_gross_rent_yield_using_sold_search_price",
             "value": round(
                 float(df["gross_rent_yield_using_sold_search_price"].median()),
                 4,
             ),
         },
-        {
-            "metric": "median_distance_from_02131_miles",
-            "value": round(float(df["distance_from_02131_miles"].median()), 2),
-        },
     ]
 
-    return pd.DataFrame(summary_rows)
+    return pd.DataFrame(rows)
 
 
 def main() -> None:
-    INTERIM_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    SUMMARY_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    """Create and save recently sold enrichment probe tables."""
+    interim_dir = Path("data/interim")
+    output_dir = Path("outputs/tables")
 
-    df = pd.DataFrame(RECENTLY_SOLD_ENRICHMENT_PROBES)
-    df = add_derived_fields(df)
+    interim_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
+    enrichment_path = interim_dir / "recently_sold_enrichment_probe_results.csv"
+    summary_path = output_dir / "recently_sold_enrichment_probe_summary.csv"
+
+    df = create_enrichment_dataframe()
     summary = create_summary(df)
 
-    df.to_csv(INTERIM_OUTPUT_PATH, index=False)
-    summary.to_csv(SUMMARY_OUTPUT_PATH, index=False)
+    df.to_csv(enrichment_path, index=False)
+    summary.to_csv(summary_path, index=False)
 
-    print(f"Saved recently sold enrichment results to: {INTERIM_OUTPUT_PATH}")
-    print(f"Saved recently sold enrichment summary to: {SUMMARY_OUTPUT_PATH}")
-    print("")
+    print(f"Saved enrichment probe results to: {enrichment_path}")
+    print(f"Saved enrichment probe summary to: {summary_path}")
+    print()
     print("Enrichment preview:")
     print(
         df[
             [
-                "property_key",
+                "address",
                 "home_type",
                 "sold_search_price",
                 "current_zestimate",
                 "rent_zestimate",
-                "gross_rent_yield_using_sold_search_price",
+                "tax_detail_available",
+                "zestimate_history_available",
+                "rent_zestimate_available",
+                "sale_date_available",
+                "final_sale_price_confirmed",
                 "sale_outcome_needs_validation",
-                "eligible_for_backtesting",
+                "backtesting_ready",
             ]
         ].to_string(index=False)
     )
-    print("")
+    print()
     print("Summary:")
     print(summary.to_string(index=False))
 
