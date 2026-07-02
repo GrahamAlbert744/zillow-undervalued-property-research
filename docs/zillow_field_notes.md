@@ -1262,3 +1262,131 @@ The next safe coding step is to create a structured recently sold enrichment pro
 - Zestimate-history availability
 - Rent Zestimate availability
 - sale-outcome validation flags
+
+
+---
+
+# Search Pull 5 — Recently Sold Comparable-Universe Probe
+
+## Pull date
+
+2026-07-01
+
+## Purpose
+
+Test whether the Zillow connector can return a local recently sold universe around Roslindale / ZIP code 02131 that may later support comparable-sales context.
+
+This is not a valuation model yet.
+
+Do not build scoring or backtesting yet.
+
+## Search setup
+
+| Item | Value |
+|---|---|
+| Search area | Roslindale, Boston, MA / ZIP 02131 |
+| Property status | Recently sold |
+| Property types | single-family, condo, townhome, multifamily |
+| Total matching count | 728 |
+| Displayed result count | 100 |
+
+## Fields returned
+
+The recently sold comparable-universe search returned:
+
+- address
+- city
+- state
+- ZIP code
+- latitude
+- longitude
+- bad geocode flag
+- bedroom count
+- bathroom count
+- living area square feet
+- lot size, when available
+- lot size units, when available
+- fixture classification
+- home type
+- sold-search price
+- title, sometimes
+- new construction flags
+- open house flag
+- VR model flag
+- Zillow detail URL
+
+## Example records returned
+
+| Property | Type | Sold-search price | Beds | Baths | Sqft |
+|---|---|---:|---:|---:|---:|
+| 41 Mount Hope St, Roslindale, MA 02131 | single-family | $640,000 | 3 | 1 | 1,616 |
+| 951 Canterbury St, Roslindale, MA 02131 | multifamily | $775,000 | 4 | 3 | 2,446 |
+| 52 Walter St, Roslindale, MA 02131 | single-family | $1,200,000 | 3 | 3 | 1,868 |
+| 11 Eugenia Rd, Roslindale, MA 02131 | single-family | $927,000 | 2 | 2 | 1,750 |
+| 41 Cornell St, Roslindale, MA 02131 | single-family | $980,000 | 3 | 2 | 1,720 |
+| 602 Canterbury St #6, Roslindale, MA 02131 | townhome | $505,154 | 2 | 2 | 1,251 |
+| 63 Bradwood St, Roslindale, MA 02131 | multifamily | $1,200,000 | 5 | 3 | 3,388 |
+| 209 Beech St, Roslindale, MA 02131 | single-family | $1,300,000 | 3 | 3 | 2,534 |
+| 122 Aldrich St, Roslindale, MA 02131 | multifamily | $1,015,000 | 7 | 2 | 2,616 |
+| 36 Orange St, Roslindale, MA 02131 | single-family | $1,250,000 | 4 | 3 | 2,524 |
+
+## Important finding
+
+The Zillow connector can return a local recently sold universe that may later support comparable-sales context.
+
+However, this search does not yet provide a true comp model.
+
+The returned records do not clearly include:
+
+- confirmed sale date
+- original list price
+- last list price before sale
+- days on market
+- price history
+- condition details
+- renovation status
+- sale concessions
+- true comp similarity score
+- manual property adjustments
+
+## MVP implication
+
+Future field to add:
+
+- `zillow_recently_sold_comp_universe_match`
+
+This field should mean:
+
+The property appeared in a recently sold search for the target local area.
+
+It should not mean the property is automatically a valid comparable sale.
+
+## Future comp-table implication
+
+A future comparable-sales table should include:
+
+- subject_property_id
+- comp_property_id
+- comp_address
+- comp_city
+- comp_zip_code
+- comp_home_type
+- comp_sold_search_price
+- comp_beds
+- comp_baths
+- comp_square_feet
+- comp_price_per_sqft
+- comp_latitude
+- comp_longitude
+- comp_distance_from_subject_miles
+- comp_distance_from_02131_miles
+- comp_sale_date_available
+- comp_final_sale_price_confirmed
+- comp_similarity_needs_validation
+- comp_exclusion_reason
+
+## Decision
+
+Do not build a comp valuation model yet.
+
+This probe supports a future comparable-sales universe, but comp selection still requires stricter filters by property type, size, distance, sale date, and data quality.
