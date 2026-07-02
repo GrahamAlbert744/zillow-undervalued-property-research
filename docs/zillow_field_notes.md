@@ -1390,3 +1390,152 @@ A future comparable-sales table should include:
 Do not build a comp valuation model yet.
 
 This probe supports a future comparable-sales universe, but comp selection still requires stricter filters by property type, size, distance, sale date, and data quality.
+
+
+
+---
+
+# Search Pull 6 — Recently Sold Comparable-Universe Refresh
+
+## Pull date
+
+2026-07-02
+
+## Purpose
+
+Refresh the recently sold residential search for Roslindale / ZIP code 02131 after the recently sold enrichment-table phase.
+
+This tests whether Zillow can still return a local recently sold universe for future comparable-sales context.
+
+This is not a valuation model.
+
+Do not build scoring or backtesting yet.
+
+## Search setup
+
+| Item | Value |
+|---|---|
+| Search area | Roslindale / ZIP 02131 |
+| Property status | Recently sold |
+| Property types | single-family, condo, townhome, multifamily |
+| Total matching count | 792 |
+| Displayed result count | 100 |
+
+## Fields returned in search response
+
+The recently sold search returned these search-level fields:
+
+- address
+- city
+- state
+- ZIP code
+- latitude
+- longitude
+- bad geocode flag
+- bedroom count
+- bathroom count
+- living area square feet
+- lot size, when available
+- lot size units, when available
+- fixture classification
+- home type
+- sold-search price
+- title, sometimes
+- new construction flags
+- open house flag
+- VR model flag
+- Zillow detail URL
+
+## Additional fields visible in widget state
+
+The Zillow widget state also exposed additional useful fields for many records:
+
+- `zpid`
+- `statusType`
+- `statusText`
+- `price`
+- `priceLabel`
+- `countryCurrency`
+- `buildingName`, sometimes
+- `lotId`, sometimes
+- `hdpData.homeInfo.homeStatus`
+- `hdpData.homeInfo.homeType`
+- `hdpData.homeInfo.zestimate`, sometimes
+- `hdpData.homeInfo.rentZestimate`, often
+
+These fields are useful for local enrichment tables, but they still need validation before scoring.
+
+## Example records returned
+
+| Property | Type | Sold-search price | Beds | Baths | Sqft | Zestimate in widget? | Rent Zestimate in widget? |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 214 Florence St #1A, Roslindale, MA 02131 | townhome | $475,000 | 3 | 2 | 1,074 | No | No |
+| 21 Stella Rd, Roslindale, MA 02131 | single-family | $640,000 | 2 | 2 | 1,066 | Yes | Yes |
+| 338 Beech St, Roslindale, MA 02131 | single-family | $1,162,000 | 3 | 3 | 1,800 | Yes | Yes |
+| 41 Mount Hope St, Roslindale, MA 02131 | single-family | $640,000 | 3 | 1 | 1,616 | Yes | Yes |
+| 951 Canterbury St, Roslindale, MA 02131 | multifamily | $775,000 | 4 | 3 | 2,446 | Yes | Yes |
+| 52 Walter St, Roslindale, MA 02131 | single-family | $1,200,000 | 3 | 3 | 1,868 | No | Yes |
+| 11 Eugenia Rd, Roslindale, MA 02131 | single-family | $927,000 | 2 | 2 | 1,750 | Yes | Yes |
+| 41 Cornell St, Roslindale, MA 02131 | single-family | $980,000 | 3 | 2 | 1,720 | Yes | Yes |
+| 602 Canterbury St #6, Roslindale, MA 02131 | townhome | $505,154 | 2 | 2 | 1,251 | Yes | Yes |
+| 63 Bradwood St, Roslindale, MA 02131 | multifamily | $1,200,000 | 5 | 3 | 3,388 | No | Yes |
+
+## Important finding
+
+The recently sold universe changed materially from the prior comparable-universe probe.
+
+Prior comparable-universe probe:
+
+- total matching count: 728
+- displayed result count: 100
+
+Current refresh:
+
+- total matching count: 792
+- displayed result count: 100
+
+This confirms that Zillow recently sold search results can change over time.
+
+## MVP implication
+
+Future local tables should preserve:
+
+- `connector_pull_date`
+- `search_area`
+- `search_status`
+- `property_types_requested`
+- `total_matching_count`
+- `displayed_result_count`
+- `zillow_recently_sold_comp_universe_match`
+- `sold_search_price_needs_validation`
+- `zestimate_from_widget_available`
+- `rent_zestimate_from_widget_available`
+
+## Sale-outcome caution
+
+The sold-search price should not be treated as a confirmed final sale price unless independently validated.
+
+This search still does not clearly provide:
+
+- confirmed sale date
+- confirmed final sale price
+- original list price
+- last list price before sale
+- days on market
+- full price history
+- condition details
+- true comparable-sale similarity score
+
+## Decision
+
+Use this pull as a fresh recently sold comp-universe refresh.
+
+Do not build a comp valuation model yet.
+
+Do not build scoring yet.
+
+Do not build backtesting yet.
+
+Next safe local coding step:
+
+Create a recently sold comp-universe sample table that stores selected search-level and widget-state fields from this pull and includes conservative validation flags.
