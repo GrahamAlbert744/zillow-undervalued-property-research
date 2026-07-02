@@ -1539,3 +1539,44 @@ Do not build backtesting yet.
 Next safe local coding step:
 
 Create a recently sold comp-universe sample table that stores selected search-level and widget-state fields from this pull and includes conservative validation flags.
+
+---
+
+# Local Table 4 — Recently Sold Comp-Universe Sample Table
+
+## Table creation date
+
+2026-07-02
+
+## Related phase
+
+Phase 12J / Phase 12K
+
+## Purpose
+
+Create a local CSV sample of recently sold Roslindale / ZIP 02131 properties returned by the Zillow connector.
+
+This table preserves a small representative sample of search-level recently sold records so the project can later develop comparable-sales context.
+
+This is not a valuation model.
+
+This is not a backtesting dataset.
+
+This does not confirm sale dates or final sale prices.
+
+## Input source
+
+Zillow connector recently sold search:
+
+| Item | Value |
+|---|---|
+| Search area | Roslindale / ZIP 02131 |
+| Property status | Recently sold |
+| Property types | single-family, condo, townhome, multifamily |
+| Total matching count | 792 |
+| Displayed result count | 100 |
+
+## Script
+
+```text
+scripts/create_recently_sold_comp_universe_sample_table.py
