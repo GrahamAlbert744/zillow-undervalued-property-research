@@ -766,3 +766,48 @@ Add new decisions here when they happen:
 
 \- Whether to automate weekly refreshes
 
+---
+
+# Decision 013 — Separate candidate gating from scoring
+
+## Date
+
+2026-07-03
+
+## Decision
+
+Create an active-listing candidate table before creating any valuation score.
+
+## Reason
+
+The active Zillow search returns useful search-level records, but it does not consistently return all fields needed for scoring, such as days on market, price history, listing description, tax history, HOA fees, or validated Zestimate/Rent Zestimate fields.
+
+The project should first separate properties into conservative review states before ranking them.
+
+## Alternatives Considered
+
+- Score all active listings immediately
+- Use Zestimate discount as the first score
+- Treat price per square foot alone as the ranking metric
+
+## Why Those Were Rejected
+
+Premature scoring would overstate what the current data supports.
+
+Price per square foot and Zestimate fields may be useful later, but they are not sufficient by themselves.
+
+## Implications
+
+The project now uses candidate states and review buckets before scoring:
+
+- reject
+- hold
+- needs_review
+- rankable_later
+
+## Follow-up Actions
+
+Next phase should build a conservative valuation/context feature table from validated search-level fields.
+
+Do not build final scoring yet.
+
