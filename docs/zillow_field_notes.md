@@ -1693,3 +1693,129 @@ Therefore, the Phase 13A candidate table should treat these records as search-le
 ```text
 data/interim/active_listing_candidate_table.csv
 outputs/tables/active_listing_candidate_summary.csv
+
+
+---
+
+# Search Pull 7 — Active Listing Candidate Refresh
+
+## Pull date
+
+2026-07-04
+
+## Related phase
+
+Phase 13A / Phase 13B
+
+## Purpose
+
+Refresh active residential listings in Roslindale / ZIP 02131 and use the result as the source context for the active-listing candidate table.
+
+This pull supports the first active candidate-review table.
+
+This is not a valuation model.
+
+This is not a scoring phase.
+
+This is not a buy/sell recommendation.
+
+## Search setup
+
+| Item | Value |
+|---|---|
+| Search area | Roslindale / ZIP 02131 |
+| Property status | Active for-sale listings |
+| Listing statuses | active, coming soon, Zillow Preview |
+| Property types | single-family, condo, townhome, multifamily |
+| Total matching count | 41 |
+| Displayed result count | 41 |
+
+## Notable refresh observation
+
+The active listing universe remained at 41 displayed records.
+
+One observed price changed from the prior Phase 13A note:
+
+| Property | Prior observed price | Current observed price |
+|---|---:|---:|
+| 15 S Fairview St #3, Roslindale, MA 02131 | $583,500 | $579,500 |
+
+This confirms that Zillow search results and listing prices can change over time.
+
+Every Zillow connector pull should preserve a pull date, source context, and local snapshot.
+
+## Fields returned in search response
+
+The active listing search returned these search-level fields:
+
+- address
+- city
+- state
+- ZIP code
+- latitude
+- longitude
+- bad geocode flag
+- bedroom count
+- bathroom count
+- living area square feet
+- lot size, when available
+- lot size units, when available
+- fixture classification
+- home type
+- listing price
+- title, sometimes
+- new construction available plan count
+- new construction premier builder flag
+- open house flag
+- VR model flag
+- Zillow detail URL
+
+## Additional fields visible in widget state
+
+The Zillow widget state also exposed additional useful fields for many active records:
+
+- `zpid`
+- `statusType`
+- `statusText`
+- `price`
+- `priceLabel`
+- `countryCurrency`
+- `buildingName`, sometimes
+- `lotId`, sometimes
+- `plid`, sometimes
+- `hdpData.homeInfo.homeStatus`
+- `hdpData.homeInfo.homeType`
+- `hdpData.homeInfo.zestimate`, sometimes
+- `hdpData.homeInfo.rentZestimate`, sometimes
+- `isUndisclosedAddress`, sometimes
+
+These fields may be useful for future enrichment, but the normalized Phase 13A candidate table should still treat the record as search-level evidence unless detail validation is completed.
+
+## Example active records returned
+
+| Property | Type | Listing price | Beds | Baths | Sqft | Widget Zestimate? | Widget Rent Zestimate? |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 602 Canterbury St #10U, Roslindale, MA 02131 | townhome | $515,000 | 2 | 2 | 1,251 | No | No |
+| 15 S Fairview St #3, Roslindale, MA 02131 | condo | $579,500 | 3 | 1 | 1,475 | Yes | Yes |
+| 11 Whipple Ave APT 1, Roslindale, MA 02131 | condo | $535,000 | 2 | 2 | 1,275 | Yes | Yes |
+| 26 Neponset Ave, Roslindale, MA 02131 | single-family | $849,000 | 3 | 3 | 1,886 | No | No |
+| 737 American Legion Hwy, Roslindale, MA 02131 | single-family | $710,000 | 5 | 3 | 1,755 | Yes | Yes |
+| 11-13 Brookfield St, Roslindale, MA 02131 | multifamily | $929,000 | 5 | 3 | 2,433 | No | No |
+| 4370 Washington St #2, Roslindale, MA 02131 | condo | $475,000 | 2 | 1 | 745 | Yes | Yes |
+| 41 Brown Ave, Roslindale, MA 02131 | single-family | $1,650,000 | 5 | 3 | 3,117 | Yes | Yes |
+| 969 Canterbury St, Roslindale, MA 02131 | multifamily | $975,000 | 5 | 2 | 2,044 | Yes | Yes |
+| 596 American Legion Hwy APT 3, Roslindale, MA 02131 | condo | $299,000 | 1 | 1 | 624 | Yes | Yes |
+
+## Important finding
+
+The active listing search returned a usable local candidate universe.
+
+However, active listing detail calls have already been shown to be limited by the Zillow detail tool.
+
+Therefore, the Phase 13A candidate table should treat these records as search-level evidence only.
+
+## Local table created
+
+```text
+data/interim/active_listing_candidate_table.csv
+outputs/tables/active_listing_candidate_summary.csv

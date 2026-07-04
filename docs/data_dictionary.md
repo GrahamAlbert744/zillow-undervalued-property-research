@@ -553,3 +553,12 @@ For each field, add:
 
 \- whether field needs manual validation
 
+
+---
+
+# Table: `active_listing_candidate_table.csv`
+
+## Path
+
+```text
+data/interim/active_listing_candidate_table.csv
