@@ -562,3 +562,12 @@ For each field, add:
 
 ```text
 data/interim/active_listing_candidate_table.csv
+
+---
+
+# Table: `valuation_context_features.csv`
+
+## Path
+
+```text
+data/interim/valuation_context_features.csv
