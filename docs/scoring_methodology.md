@@ -13,6 +13,52 @@ This document defines the planned scoring approach for the Zillow Undervalued Pr
 The goal is not to automatically recommend buying or selling properties. The goal is to create a conservative, transparent research score that helps rank properties for further human review.
 
 
+---
+
+# Research Queue Methodology — Pre-Scoring Phase
+
+## Status
+
+The current project stage creates a conservative property research queue.
+
+This is a pre-scoring phase.
+
+## What the queue does
+
+The research queue organizes active listing candidates into human-review buckets using:
+
+- candidate gating status
+- data-quality flags
+- price-per-square-foot context
+- Zestimate context, when available
+- Rent Zestimate and gross yield context, when available
+- context-confidence notes
+
+## What the queue does not do
+
+The queue does not:
+
+- create a final score
+- create an investment ranking
+- recommend buying or selling
+- estimate fair value
+- perform comparable-sales adjustment
+- perform backtesting
+- validate sale outcomes
+
+## Interpretation rule
+
+A higher queue position only means:
+
+The property may deserve earlier human review based on currently available context signals.
+
+It does not mean:
+
+- the property is undervalued
+- the property is a good investment
+- the property should be bought
+- the model has validated predictive power
+
 
 The model should be treated as a screening tool, not an investment decision engine.
 
