@@ -571,3 +571,57 @@ data/interim/active_listing_candidate_table.csv
 
 ```text
 data/interim/valuation_context_features.csv
+```
+
+---
+
+# Table: `candidate_exclusion_review_table.csv`
+
+## Path
+
+```text
+data/interim/candidate_exclusion_review_table.csv
+```
+
+## Purpose
+
+Makes properties excluded or held at the candidate-gating stage visible for human
+review instead of silently dropping them. Every row is a record whose
+`candidate_review_bucket` (from `active_listing_candidate_table.csv`) is
+`reject`, `hold`, or `needs_review`. Rows that are `rankable_later` do not
+appear in this table.
+
+## Source
+
+```text
+data/interim/active_listing_candidate_table.csv
+data/interim/property_research_queue.csv (optional cross-reference)
+→ scripts/create_candidate_exclusion_review_table.py
+→ data/interim/candidate_exclusion_review_table.csv
+→ outputs/tables/candidate_exclusion_review_summary.csv
+```
+
+## Key fields
+
+- `exclusion_type` — mirrors `candidate_review_bucket` (`reject`, `hold`, or `needs_review`).
+- `exclusion_reason_summary` — plain-language explanation built from the same hard
+  data-quality gate flags used by `create_active_listing_candidate_table.py`
+  (missing/invalid price, missing/invalid square feet, outside radius,
+  non-residential, missing home type, missing lat/long, missing beds/baths,
+  undisclosed address, suspicious price per sqft, or a generic data-quality flag).
+- `queue_cross_reference_bucket` / `queue_cross_reference_priority` — the same
+  property's disposition in `property_research_queue.csv`, when available, so
+  the two tables can be checked against each other.
+- `next_review_step` — a conservative, generic next action per exclusion type.
+  Reject records are not expected to be revisited without corrected source
+  data; hold and needs_review records may be revisited once missing fields
+  become available.
+
+## Anti-overclaim flags
+
+- `candidate_exclusion_review_not_final` is always `True`.
+- `records_silently_dropped` is always `False`.
+- `exclusion_score_created` is always `False`.
+
+This table explains exclusions. It does not score them, and it is not a
+final valuation or investment ranking.

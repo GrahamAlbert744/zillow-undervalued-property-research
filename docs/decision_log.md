@@ -811,3 +811,60 @@ Next phase should build a conservative valuation/context feature table from vali
 
 Do not build final scoring yet.
 
+---
+
+# Decision 014 — Keep excluded/held candidates visible instead of dropping them
+
+## Date
+
+2026-07-08
+
+## Decision
+
+Add `scripts/create_candidate_exclusion_review_table.py`, producing
+`data/interim/candidate_exclusion_review_table.csv` and
+`outputs/tables/candidate_exclusion_review_summary.csv`. This table holds
+every property whose `candidate_review_bucket` is `reject`, `hold`, or
+`needs_review`, with a plain-language reason and a cross-reference to that
+property's disposition in the research queue.
+
+Also fixed `.gitignore` so `outputs/reports/*.md` and
+`outputs/tables/*summary*.csv` are committable, and removed the empty dead
+stub `scripts/create_research_queue.py` (superseded by
+`create_research_queue_table.py`).
+
+## Reason
+
+Prior stages already gate out non-rankable properties, but there was no
+table that made those exclusions visible for human review. Without one,
+a property could be quietly filtered out of every downstream table with no
+record of why.
+
+## Alternatives Considered
+
+- Leave excluded/held records implicit in the candidate table only
+- Score excluded records as zero instead of explaining the exclusion
+- Skip committing audit outputs entirely
+
+## Why Those Were Rejected
+
+Implicit exclusion makes it hard to audit whether the pipeline is dropping
+records that deserve a second look once more data is available. Scoring
+excluded records as zero would misrepresent missing/invalid data as a
+negative signal rather than an unknown. Never committing audit outputs
+made it impossible to review pipeline history from git alone.
+
+## Implications
+
+- Reject/hold/needs_review properties are now preserved with an explicit
+  reason and next step, not silently dropped.
+- Small audit CSVs/reports (not raw or interim data) are committed going
+  forward, consistent with the project's `safe_to_commit` policy.
+
+## Follow-up Actions
+
+- Build the property research notes stage (`outputs/property_research_notes/`)
+  once the exclusion review table has been used in a real run.
+- Consider adding `config/*.yml` files for geography, field mapping, and
+  data-quality rules instead of hardcoding thresholds in scripts.
+
