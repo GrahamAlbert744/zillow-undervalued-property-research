@@ -1,0 +1,20 @@
+metric,value
+total_records,10
+eligible_for_context_features,10
+basic_price_context_available,9
+zestimate_context_available,0
+income_context_available,0
+below_home_type_median_ppsf,2
+far_below_home_type_median_ppsf,2
+listing_price_below_zestimate_context,0
+moderate_gross_rent_yield_context,0
+high_gross_rent_yield_context,0
+valuation_score_created,0
+ranking_created,0
+buy_sell_recommendation_created,0
+valuation_context_bucket__basic_price_context_available,9
+valuation_context_bucket__limited_context,1
+home_type_summary__condo,records=4; median_price=554250.0; median_ppsf=488.4; context_signals=2
+home_type_summary__multi_family,records=2; median_price=1190000.0; median_ppsf=307.02; context_signals=0
+home_type_summary__single_family,records=3; median_price=710000.0; median_ppsf=529.36; context_signals=2
+home_type_summary__townhome,records=1; median_price=599900.0; median_ppsf=346.56; context_signals=0

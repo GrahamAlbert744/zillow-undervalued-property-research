@@ -1,0 +1,20 @@
+metric,value
+total_records,10
+review_first_count,2
+review_next_count,0
+review_if_time_count,6
+watchlist_limited_data_count,1
+data_quality_review_count,1
+excluded_count,0
+final_score_created_count,0
+investment_recommendation_created_count,0
+buy_sell_recommendation_created_count,0
+backtesting_ready_count,0
+research_queue_bucket__data_quality_review,1
+research_queue_bucket__review_first,2
+research_queue_bucket__review_if_time,6
+research_queue_bucket__watchlist_limited_data,1
+home_type_summary__condo,records=4; median_price=554250.0; median_ppsf=488.4; median_context_signals=0.0
+home_type_summary__multi_family,records=2; median_price=1190000.0; median_ppsf=307.02; median_context_signals=0.0
+home_type_summary__single_family,records=3; median_price=710000.0; median_ppsf=529.36; median_context_signals=0.0
+home_type_summary__townhome,records=1; median_price=599900.0; median_ppsf=346.56; median_context_signals=0.0

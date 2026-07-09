@@ -1,0 +1,16 @@
+metric,value
+connector_pull_date,2026-07-02
+search_area,Roslindale / ZIP 02131
+total_matching_count,792
+displayed_result_count,100
+sample_records_stored,12
+single_family_count,7
+condo_count,0
+townhome_count,2
+multi_family_count,3
+outside_target_radius_count,0
+sale_date_available_count,0
+final_sale_price_confirmed_count,0
+backtesting_ready_count,0
+median_sold_search_price,953500.0
+median_sold_search_price_per_sqft,477.64

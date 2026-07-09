@@ -1,0 +1,12 @@
+metric,value
+records_in_candidate_table,10
+rankable_later_count,9
+needs_review_count,1
+hold_count,0
+reject_count,0
+missing_price_count,0
+missing_square_feet_count,0
+missing_lat_long_count,1
+undisclosed_address_count,1
+outside_target_radius_count,0
+overall_scoring_ready_count,0

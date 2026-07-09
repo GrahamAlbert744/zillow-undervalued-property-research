@@ -1,0 +1,12 @@
+metric,value
+records_in_exclusion_review_table,1
+reject_count,0
+hold_count,0
+needs_review_count,1
+missing_price_count,0
+outside_target_radius_count,0
+missing_square_feet_count,0
+missing_lat_long_count,1
+undisclosed_address_count,1
+data_needs_review_count,1
+exclusion_type__needs_review,1
