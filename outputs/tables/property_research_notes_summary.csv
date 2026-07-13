@@ -1,0 +1,11 @@
+property_id,address,research_queue_position,research_queue_bucket,research_priority,note_path,forbidden_language_detected
+59141443,"737 American Legion Hwy, Roslindale, MA 02131",1,review_first,high_priority_human_review,outputs\property_research_notes\001_property_59141443.md,False
+59210672,"15 S Fairview St #3, Roslindale, MA 02131",2,review_first,high_priority_human_review,outputs\property_research_notes\002_property_59210672.md,False
+59146829,"596 American Legion Hwy APT 3, Roslindale, MA 02131",3,review_if_time,low_priority_human_review,outputs\property_research_notes\003_property_59146829.md,False
+59147121,"41 Brown Ave, Roslindale, MA 02131",4,review_if_time,low_priority_human_review,outputs\property_research_notes\004_property_59147121.md,False
+463318074,"74-76 Poplar St, Roslindale, MA 02131",5,review_if_time,low_priority_human_review,outputs\property_research_notes\005_property_463318074.md,False
+190036074,"74-76 Poplar, Boston, MA 02131",6,review_if_time,low_priority_human_review,outputs\property_research_notes\006_property_190036074.md,False
+81775911,"61 Cummins Hwy #2, Boston, MA 02131",7,review_if_time,low_priority_human_review,outputs\property_research_notes\007_property_81775911.md,False
+59143097,"136A Belgrade Ave, Roslindale, MA 02131",8,review_if_time,low_priority_human_review,outputs\property_research_notes\008_property_59143097.md,False
+59141211,"45 Harrison St APT B, Roslindale, MA 02131",9,watchlist_limited_data,limited_context_watchlist,outputs\property_research_notes\009_property_59141211.md,False
+462926733,"(undisclosed Address), Roslindale, MA 02131",10,data_quality_review,needs_data_review_before_research,outputs\property_research_notes\010_property_462926733.md,False
