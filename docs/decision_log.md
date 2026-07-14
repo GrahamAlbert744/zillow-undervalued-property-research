@@ -868,3 +868,75 @@ made it impossible to review pipeline history from git alone.
 - Consider adding `config/*.yml` files for geography, field mapping, and
   data-quality rules instead of hardcoding thresholds in scripts.
 
+---
+
+# Decision 015 — Complete the MVP: property research notes and MVP run summary
+
+## Date
+
+2026-07-12
+
+## Decision
+
+Add `scripts/create_property_research_notes.py`, which generates one
+markdown note per non-excluded research-queue property in
+`outputs/property_research_notes/`, plus
+`outputs/tables/property_research_notes_summary.csv`. Also add
+`scripts/create_mvp_run_summary.py`, which rolls up counts across every
+pipeline stage into `outputs/reports/mvp_run_summary.md`, distinct from
+the earlier `outputs/reports/run_summary.md`.
+
+This completes the MVP pipeline described in the project instructions:
+
+```text
+Zillow search-level data -> normalized property table -> data-quality gates
+-> candidate table -> valuation/context features -> human-review research queue
+-> excluded/hold review table -> property research notes -> MVP run summary
+```
+
+## Reason
+
+The research queue and exclusion review table organize properties for
+review, but a human reviewer still needs a single readable document per
+property that cites available evidence and explicitly lists what is
+missing, plus one report that confirms the whole pipeline's anti-overclaim
+safeguards are still holding.
+
+## Alternatives Considered
+
+- Skip per-property notes and rely on the research queue CSV alone
+- Let each pipeline stage's own summary stand in for a final rollup report
+- Generate note text from a template that includes literal words like
+  "buy" or "sell" inside negated disclaimer sentences
+
+## Why Those Were Rejected
+
+A CSV row is not the intended human-readable artifact the project
+instructions describe. Per-stage summaries do not answer the doc's
+review_questions (data quality, valuation context, research queue,
+limitations) in one place. Negated disclaimer sentences ("not a buy or
+sell recommendation") still contain the literal forbidden words the
+project's own language rules ban — the notes generator now enforces this
+with a regex check that raises before writing any note containing a
+forbidden phrase, so disclaimers were reworded to avoid the literal words
+entirely ("not a purchase or sale recommendation").
+
+## Implications
+
+- Every research-queue property except `excluded`-bucket ones now has a
+  markdown note with a required section set (property summary, available
+  evidence, valuation context, income context, data-quality warnings,
+  missing information, next research steps, interpretation cautions).
+- `outputs/reports/mvp_run_summary.md` is the report to check at the end
+  of a run; all four anti-overclaim counts (final score, investment
+  recommendation, buy/sell recommendation, backtesting-ready) must read 0.
+
+## Follow-up Actions
+
+- Consider adding `config/*.yml` files for geography, field mapping, and
+  data-quality rules instead of hardcoding thresholds in scripts.
+- Add `tests/` coverage for the forbidden-language check and the
+  candidate-gating logic before building any real scoring model.
+- Do not begin the scoring/status-tracking/backtesting phases until sale
+  outcomes can be confirmed, per the project's backtesting rules.
+

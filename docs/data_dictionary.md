@@ -625,3 +625,84 @@ data/interim/property_research_queue.csv (optional cross-reference)
 
 This table explains exclusions. It does not score them, and it is not a
 final valuation or investment ranking.
+
+---
+
+# Table: `property_research_notes_summary.csv`
+
+## Path
+
+```text
+outputs/tables/property_research_notes_summary.csv
+```
+
+## Purpose
+
+Index of the per-property markdown notes generated in
+`outputs/property_research_notes/`. One row per note file.
+
+## Source
+
+```text
+data/interim/property_research_queue.csv
+→ scripts/create_property_research_notes.py
+→ outputs/property_research_notes/*.md
+→ outputs/tables/property_research_notes_summary.csv
+```
+
+## Notes
+
+- Properties whose `research_queue_bucket` is `excluded` are skipped — they
+  are already explained in `candidate_exclusion_review_table.csv`.
+- Each note covers: property summary, available Zillow evidence, valuation
+  context signals, income context signals, data-quality warnings, missing
+  information, next human research steps, and interpretation cautions.
+- Before a note is written, its text is scanned for forbidden language
+  (`buy`, `sell`, `strong buy`, `guaranteed undervalued`, `safe investment`,
+  `confirmed bargain`, `final valuation`). The script raises an error
+  instead of writing a note if any forbidden phrase is found. The
+  `forbidden_language_detected` column records the result of that check
+  for every note that was successfully written.
+- Notes only use conservative language ("may deserve human review", "needs
+  validation", "requires manual confirmation") and never recommend a
+  purchase or sale.
+
+---
+
+# Report: `mvp_run_summary.md`
+
+## Path
+
+```text
+outputs/reports/mvp_run_summary.md
+```
+
+## Purpose
+
+Final rollup report for the full MVP pipeline: normalization, data-quality
+gates, candidate gating, valuation/context features, research queue,
+exclusion/hold review, and property research notes. Distinct from
+`outputs/reports/run_summary.md`, which only covers the normalization and
+data-quality stages.
+
+## Source
+
+```text
+data/processed/all_properties_normalized.csv
+outputs/tables/active_listing_candidate_summary.csv
+outputs/tables/valuation_context_feature_summary.csv
+outputs/tables/property_research_queue_summary.csv
+outputs/tables/candidate_exclusion_review_summary.csv
+outputs/tables/property_research_notes_summary.csv
+→ scripts/create_mvp_run_summary.py
+→ outputs/reports/mvp_run_summary.md
+```
+
+## Notes
+
+Every input table is optional except the normalized property file; a
+missing table is reported as "not available" rather than crashing the
+script. The report ends with an anti-overclaim safeguard check (final
+scores, investment recommendations, buy/sell recommendations, and
+backtesting-ready counts, all of which should read 0) and a limitations
+section.
