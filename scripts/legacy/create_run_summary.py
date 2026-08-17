@@ -1,4 +1,11 @@
 """
+LEGACY (Decision 017, 2026-08-16): superseded by
+scripts/create_mvp_run_summary.py, which rolls up the full pipeline
+(including candidate gating, research queue, exclusion review, and research
+notes) into outputs/reports/mvp_run_summary.md. This script only covers the
+normalize + data-quality stages and predates the rest of the pipeline. Kept
+for reference/manual diagnostic use; not part of the run-pipeline skill.
+
 Create run summary report for the Zillow undervalued-property project.
 
 Purpose:

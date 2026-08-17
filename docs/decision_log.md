@@ -1005,3 +1005,58 @@ repeat the same gap Decision 015 already flagged and not fixed.
 - Next real milestone is the conservative scoring model (`prompts/23`),
   still gated behind Decisions 004/007/013 until explicitly approved.
 
+---
+
+# Decision 017 — Post-review housekeeping: retire legacy script, remove unused folder
+
+## Date
+
+2026-08-16
+
+## Decision
+
+Following a full project review, three small cleanups:
+
+1. Pushed the three then-local commits (Phase B skill/subagent/hook,
+   CLAUDE.md, Decision 016) to `origin/main`.
+2. Moved `scripts/create_run_summary.py` to
+   `scripts/legacy/create_run_summary.py` and added a header noting why it
+   is retired.
+3. Removed the unused `outputs/research_notes/` stub folder (only ever
+   contained `.gitkeep`), distinct from the actually-used
+   `outputs/property_research_notes/`.
+
+## Reason
+
+`create_run_summary.py` only summarizes the normalize + data-quality
+stages, predates candidate gating/research queue/notes, and is not
+referenced by the `run-pipeline` skill or any current doc —
+`outputs/reports/mvp_run_summary.md` (Decision 015) is the report actually
+checked at the end of a run. `outputs/research_notes/` was never wired to
+any script and risked being confused with `outputs/property_research_notes/`.
+
+## Alternatives Considered
+
+- Delete `create_run_summary.py` outright instead of moving it.
+- Leave both unused items in place indefinitely.
+
+## Why Those Were Rejected
+
+The script still runs and produces a valid (if narrower) report; deleting
+it would discard working code for no benefit when moving it to `legacy/`
+with an explanatory header preserves it for manual/diagnostic use while
+making its non-current status explicit. Leaving unused items in place adds
+confusion for no benefit — this is exactly the kind of drift Decision 016's
+audit was meant to catch.
+
+## Implications
+
+- `scripts/legacy/` now exists as a convention for retired-but-kept scripts.
+- Repo history is on GitHub, not just local, as of this decision.
+
+## Follow-up Actions
+
+- Proceed to `config/*.yml` extraction (Decision log item repeatedly
+  deferred since Decision 014).
+- Proceed to the conservative scoring model, now explicitly approved.
+
