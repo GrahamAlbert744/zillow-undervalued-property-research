@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/hooks/check_forbidden_language.py",
+            "timeout": 15,
+            "statusMessage": "Checking for forbidden buy/sell language..."
+          }
+        ]
+      }
+    ]
+  }
+}
