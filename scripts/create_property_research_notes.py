@@ -4,9 +4,9 @@ Create per-property research notes.
 Purpose:
 - Turn each non-excluded research-queue row into a human-readable note.
 - Use only available evidence; explicitly list missing information.
-- Do NOT recommend buying or selling.
+- Do NOT make a purchase or sale recommendation.
 - Do NOT claim a property is undervalued without validation.
-- Do NOT create a final valuation.
+- Do NOT create a completed valuation.
 
 Input:
 - data/interim/property_research_queue.csv
@@ -19,9 +19,16 @@ Output:
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import pandas as pd
+
+try:
+    from src.config import load_forbidden_language_patterns
+except ModuleNotFoundError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from src.config import load_forbidden_language_patterns
 
 
 INPUT_PATH = Path("data/interim/property_research_queue.csv")
@@ -31,17 +38,12 @@ SUMMARY_PATH = Path("outputs/tables/property_research_notes_summary.csv")
 # Buckets already fully explained in candidate_exclusion_review_table.csv.
 SKIP_QUEUE_BUCKETS = {"excluded"}
 
+# Sourced from config/forbidden_language.yml (Decision 017). Also read by
+# scripts/hooks/check_forbidden_language.py so both the generation-time
+# check and the edit-time hook stay in sync.
 FORBIDDEN_PATTERNS = [
     re.compile(pattern, re.IGNORECASE)
-    for pattern in [
-        r"\bbuy\b",
-        r"\bsell\b",
-        r"strong buy",
-        r"guaranteed undervalued",
-        r"safe investment",
-        r"confirmed bargain",
-        r"final valuation",
-    ]
+    for pattern in load_forbidden_language_patterns()
 ]
 
 
@@ -366,7 +368,7 @@ def main() -> None:
     print()
     print("Important:")
     print("- These notes are for human research triage only.")
-    print("- No buy/sell recommendations were created.")
+    print("- No purchase or sale recommendations were created.")
     print("- No property is claimed to be undervalued without validation.")
 
 

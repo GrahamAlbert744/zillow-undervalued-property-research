@@ -170,6 +170,16 @@ zillow-undervalued-property-research/
 
 
 
+&#x20; config/
+
+&#x20;   geography.yml
+
+&#x20;   forbidden\_language.yml
+
+&#x20;   field\_mapping.yml
+
+
+
 &#x20; outputs/
 
 &#x20;   reports/
@@ -178,7 +188,7 @@ zillow-undervalued-property-research/
 
 &#x20;   maps/
 
-&#x20;   research\_notes/
+&#x20;   property\_research\_notes/
 
 
 
@@ -191,6 +201,8 @@ zillow-undervalued-property-research/
 
 
 &#x20; src/
+
+&#x20;   config.py
 
 &#x20;   zillow\_client.py
 

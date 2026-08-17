@@ -1060,3 +1060,73 @@ audit was meant to catch.
   deferred since Decision 014).
 - Proceed to the conservative scoring model, now explicitly approved.
 
+---
+
+# Decision 018 — Extract shared constants into `config/*.yml`
+
+## Date
+
+2026-08-16
+
+## Decision
+
+Add `config/geography.yml`, `config/forbidden_language.yml`, and
+`config/field_mapping.yml`, plus a loader (`src/config.py`), and update
+`src/geocoding.py`, `src/field_mapping.py`,
+`scripts/create_property_research_notes.py`, and
+`scripts/hooks/check_forbidden_language.py` to read from them instead of
+inline constants. No values changed — same ZIP/radius, same forbidden
+phrases, same home-type mapping.
+
+## Reason
+
+The review that led to Decision 017 found the target ZIP/radius and
+lat/long origin hardcoded in `src/geocoding.py` and referenced by name
+across roughly a dozen scripts, and — more importantly — the
+forbidden-language regex list duplicated verbatim in both
+`scripts/create_property_research_notes.py` (the generation-time check) and
+`scripts/hooks/check_forbidden_language.py` (the edit-time hook added in
+Phase B). Two copies of the project's core guardrail pattern list meant a
+future edit to one could silently fail to reach the other. This had been
+flagged as a nice-to-have in Decisions 014, 015, and 016 without being
+done.
+
+## Alternatives Considered
+
+- Leave the duplication in place since both copies currently match.
+- Have the hook import directly from
+  `scripts/create_property_research_notes.py` instead of a shared config
+  file.
+- Extract all of `src/field_mapping.py`'s field-extraction logic into YAML,
+  not just the `home_type` label mapping.
+
+## Why Those Were Rejected
+
+Matching today doesn't prevent drift tomorrow — that's the whole risk this
+closes. Importing the hook from the notes-generation script would pull in
+`pandas` and the rest of that script's machinery into a hook meant to run
+fast on every Write/Edit; a shared, dependency-light YAML file is a cleaner
+split. Most of `field_mapping.py`'s logic is fallback chains over nested
+Zillow connector paths (e.g. try `record["price"]`, then
+`hdpData.homeInfo.price`), which is genuinely code, not a lookup table —
+forcing it into YAML would add indirection without reducing duplication;
+only the one real lookup table (`home_type` labels) was extracted.
+
+## Implications
+
+- A future change to the banned-phrase list, the target radius, or a
+  home-type label variant is a one-file edit that automatically reaches
+  every consumer.
+- `PyYAML` (already listed in `requirements.txt`) is now an active runtime
+  dependency, not just a declared one — installed in the environment used
+  to run pipeline scripts.
+- Verified byte-identical pipeline output before/after this change (only
+  `outputs/reports/mvp_run_summary.md`'s run timestamp differed); `pytest`
+  passes, including new `tests/test_config.py`, which regression-tests that
+  the notes generator and the hook compile the identical pattern list.
+
+## Follow-up Actions
+
+- None outstanding; config extraction is closed.
+- Proceed to the conservative scoring model.
+

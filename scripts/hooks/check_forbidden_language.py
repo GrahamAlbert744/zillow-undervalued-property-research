@@ -27,20 +27,18 @@ import re
 import sys
 from pathlib import Path
 
-# Same patterns as scripts/create_property_research_notes.py. Kept as a
-# separate copy (not imported) so this hook has no dependency on pandas or
-# the rest of that script's machinery and stays fast to invoke on every edit.
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+# Patterns are now read from config/forbidden_language.yml (Decision 017),
+# the same file scripts/create_property_research_notes.py reads, so the two
+# checks cannot drift apart. This import only needs PyYAML, not pandas, so
+# the hook stays fast to invoke on every edit.
+from src.config import load_forbidden_language_patterns  # noqa: E402
+
 FORBIDDEN_PATTERNS = [
     re.compile(pattern, re.IGNORECASE)
-    for pattern in [
-        r"\bbuy\b",
-        r"\bsell\b",
-        r"strong buy",
-        r"guaranteed undervalued",
-        r"safe investment",
-        r"confirmed bargain",
-        r"final valuation",
-    ]
+    for pattern in load_forbidden_language_patterns()
 ]
 
 # Files this hook guards: the generated notes themselves, plus the script

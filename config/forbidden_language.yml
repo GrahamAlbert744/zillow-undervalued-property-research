@@ -1,0 +1,22 @@
+# Forbidden buy/sell/investment-recommendation language for the Zillow
+# undervalued-property project (Decision 003).
+#
+# Single source of truth for the regex patterns previously duplicated in
+# scripts/create_property_research_notes.py and
+# scripts/hooks/check_forbidden_language.py. A change here automatically
+# applies to both the generation-time check and the edit-time hook, closing
+# the drift risk of the two copies going out of sync.
+#
+# These patterns must never appear in research notes or any other output,
+# even inside negated disclaimers ("not a buy recommendation" still
+# contains the forbidden word "buy"). See docs/decision_log.md Decision 015
+# and CLAUDE.md.
+
+patterns:
+  - '\bbuy\b'
+  - '\bsell\b'
+  - 'strong buy'
+  - 'guaranteed undervalued'
+  - 'safe investment'
+  - 'confirmed bargain'
+  - 'final valuation'

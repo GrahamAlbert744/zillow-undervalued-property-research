@@ -1,0 +1,17 @@
+# Geography constants for the Zillow undervalued-property project.
+#
+# Single source of truth for the target ZIP/radius, previously hardcoded
+# separately in src/geocoding.py and referenced by name (not value) across
+# the candidate-gating, valuation, and research-queue scripts.
+# See docs/decision_log.md Decision 017 (config extraction).
+
+target_zip: "02131"
+
+# Approximate center point for ZIP 02131 / Roslindale. Can be refined later
+# if needed (see src/geocoding.py).
+target_zip_latitude: 42.2834
+target_zip_longitude: -71.1290
+
+target_radius_miles: 25.0
+
+earth_radius_miles: 3958.8

@@ -30,8 +30,10 @@ import pandas as pd
 
 try:
     from src.geocoding import haversine_distance_miles, is_outside_radius
+    from src.config import load_home_type_labels
 except ModuleNotFoundError:
     from geocoding import haversine_distance_miles, is_outside_radius
+    from config import load_home_type_labels
 
 
 DEFAULT_RAW_PATH = Path("data/raw/zillow_raw_search_20260624.json")
@@ -113,21 +115,8 @@ def normalize_home_type(value: Any) -> Optional[str]:
 
     raw = str(value).strip()
 
-    mapping = {
-        "SINGLE_FAMILY": "single_family",
-        "singleFamily": "single_family",
-        "single_family": "single_family",
-        "house": "single_family",
-        "CONDO": "condo",
-        "condo": "condo",
-        "TOWNHOUSE": "townhome",
-        "townhouse": "townhome",
-        "townhome": "townhome",
-        "MULTI_FAMILY": "multi_family",
-        "multiFamily": "multi_family",
-        "multi_family": "multi_family",
-        "multifamily": "multi_family",
-    }
+    # Sourced from config/field_mapping.yml (Decision 017).
+    mapping = load_home_type_labels()
 
     return mapping.get(raw, raw.lower())
 

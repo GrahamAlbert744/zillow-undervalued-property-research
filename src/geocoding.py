@@ -13,12 +13,20 @@ from __future__ import annotations
 import math
 from typing import Optional
 
+try:
+    from src.config import load_geography_config
+except ModuleNotFoundError:
+    from config import load_geography_config
+
+_GEOGRAPHY = load_geography_config()
 
 # Approximate center point for ZIP 02131 / Roslindale.
 # This can be refined later if needed.
-ZIP_02131_LATITUDE = 42.2834
-ZIP_02131_LONGITUDE = -71.1290
-EARTH_RADIUS_MILES = 3958.8
+# Sourced from config/geography.yml (Decision 017).
+ZIP_02131_LATITUDE = _GEOGRAPHY["target_zip_latitude"]
+ZIP_02131_LONGITUDE = _GEOGRAPHY["target_zip_longitude"]
+EARTH_RADIUS_MILES = _GEOGRAPHY["earth_radius_miles"]
+DEFAULT_TARGET_RADIUS_MILES = _GEOGRAPHY["target_radius_miles"]
 
 
 def haversine_distance_miles(
@@ -60,7 +68,7 @@ def haversine_distance_miles(
 
 def is_outside_radius(
     distance_miles: float | None,
-    radius_miles: float = 25.0,
+    radius_miles: float = DEFAULT_TARGET_RADIUS_MILES,
 ) -> bool:
     """
     Return True if a property is outside the target radius.

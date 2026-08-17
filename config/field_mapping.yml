@@ -1,0 +1,29 @@
+# Zillow home_type label normalization for the Zillow undervalued-property
+# project.
+#
+# Single source of truth for the raw Zillow home-type label -> normalized
+# label mapping previously hardcoded inside
+# src/field_mapping.py:normalize_home_type(). Any raw label not listed here
+# falls back to its own lowercased form (see src/config.py), matching the
+# original function's behavior.
+#
+# Note: most of src/field_mapping.py's field extraction is fallback-chain
+# logic over nested Zillow connector paths (e.g. record["price"] or
+# hdpData.homeInfo.price), not a simple key->key mapping, so it is not a
+# good fit for YAML and stays in code. This file covers the one part of
+# field_mapping.py that was a plain lookup table.
+
+home_type_labels:
+  SINGLE_FAMILY: single_family
+  singleFamily: single_family
+  single_family: single_family
+  house: single_family
+  CONDO: condo
+  condo: condo
+  TOWNHOUSE: townhome
+  townhouse: townhome
+  townhome: townhome
+  MULTI_FAMILY: multi_family
+  multiFamily: multi_family
+  multi_family: multi_family
+  multifamily: multi_family

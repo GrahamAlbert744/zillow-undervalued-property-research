@@ -13,6 +13,19 @@ data/interim/active_listing_candidate_table.csv
 
 \## Purpose
 
+As of Decision 017, shared constants that were previously hardcoded and
+duplicated across scripts/src modules live in `config/*.yml`, loaded via
+`src/config.py`:
+
+- `config/geography.yml` — target ZIP `02131`, its approximate lat/long
+  center, the 25-mile target radius, and the earth-radius constant used by
+  `src/geocoding.py`'s haversine distance calculation.
+- `config/forbidden_language.yml` — the forbidden buy/sell/investment
+  regex patterns enforced by `scripts/create_property_research_notes.py`
+  and `scripts/hooks/check_forbidden_language.py`.
+- `config/field_mapping.yml` — the raw Zillow `home_type` label
+  normalization table used by `src/field_mapping.py`.
+
 ---
 
 # Observed MVP Pipeline Fields
