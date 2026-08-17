@@ -35,6 +35,7 @@ outputs/property_research_notes/*
 !outputs/maps/.gitkeep
 !outputs/research_notes/.gitkeep
 !outputs/property_research_notes/.gitkeep
+!outputs/property_research_notes/*.md
 
 # OS/editor
 .DS_Store

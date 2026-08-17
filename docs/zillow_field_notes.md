@@ -26,11 +26,21 @@ This document should be updated after each Zillow connector pull.
 
 
 
-No raw Zillow connector sample has been saved yet.
+The MVP pipeline is complete. Multiple raw Zillow connector pulls have been
+
+saved and logged below (Search Pulls 1-7, Detail Probes 1-6), most recently
+
+the active-listing candidate refresh on 2026-07-04. The 2026-06-24 sample at
+
+`data/raw/zillow_raw_search_20260624.json` has been normalized end-to-end
+
+through `outputs/reports/mvp_run_summary.md`.
 
 
 
-This document is currently a planning template.
+This document is a running log, not a planning template. Continue updating
+
+it after each new connector pull per the Update Rules section below.
 
 
 
