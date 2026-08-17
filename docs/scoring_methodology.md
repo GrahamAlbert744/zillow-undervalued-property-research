@@ -786,6 +786,54 @@ Each version should record:
 
 
 
+\## Version History
+
+
+
+\### `score\_v0\_1\_mvp\_simple` (2026-08-17, Decision 019)
+
+
+
+\- Scoring changes: first implementation. Valuation (price-per-sqft vs.
+
+  home-type median, price-to-Zestimate discount), Income Potential (Rent
+
+  Zestimate availability, gross rent yield), Property Usefulness (valid
+
+  sqft/beds-baths/home type/price), and Data Quality (core-field
+
+  completeness, geocode validity, target-radius membership, no
+
+  data-quality-review flag).
+
+\- Reason for change: first scoring milestone, approved after Decisions
+
+  004/007/013's gating conditions were explicitly satisfied.
+
+\- Fields used: `price_per_sqft_vs_home_type_median_pct`,
+
+  `price_to_zestimate_pct`, `rent_zestimate_available`, `gross_rent_yield`,
+
+  `square_feet`, `beds`, `baths`, `home_type`, `price`, `address`,
+
+  `latitude`, `longitude`, `outside_target_radius`, `data_needs_review`.
+
+\- Known limitations: max achievable score is 82 of 100 (see Current
+
+  Status below); scores only the ~10-property sample pulled 2026-06-24,
+
+  not a larger dataset; "no duplicate warning" and "no suspicious value
+
+  warning" collapse into one combined flag.
+
+\- Validation results: none yet. Fewer than 20 sold outcomes exist, so per
+
+  this doc's own Model Evaluation Metrics rule, this version should be
+
+  observed only, not calibrated.
+
+
+
 \---
 
 
@@ -794,9 +842,41 @@ Each version should record:
 
 
 
-This methodology is a planning document.
+Implemented as of Decision 019 (2026-08-17), version `score_v0_1_mvp_simple`.
 
 
 
-The next step is not to score properties. The next step is to inspect actual Zillow connector fields, update the data dictionary, and determine which fields are reliable enough for MVP scoring.
+`src/scoring.py` and `scripts/create_property_scores_table.py` implement the
+
+MVP Scoring Model above using only the signals available from the current
+
+search-level pipeline data. The maximum achievable score in this version is
+
+**82 of 100**, not 100 — the remaining 18 points belong to signals this doc
+
+explicitly marks as future features (comparable-sale discount, price-cut/
+
+days-on-market history, HOA/tax burden, multifamily rental-use potential)
+
+and always score 0 until those signals are built. See
+
+`docs/decision_log.md` Decision 019 for the full component-by-component
+
+breakdown of what is implemented vs. deferred, and for why "no duplicate
+
+warning" and "no suspicious value warning" are scored together from a
+
+single combined `data_needs_review` flag rather than as two separate
+
+signals.
+
+
+
+This score is a research-ranking signal only. It does not create a fair
+
+value estimate, an investment ranking, or a purchase/sale recommendation —
+
+those remain future work, still gated the same way scoring itself was
+
+until this decision (Decisions 004, 007, 013).
 

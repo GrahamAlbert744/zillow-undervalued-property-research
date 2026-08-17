@@ -1,16 +1,17 @@
 # Zillow MVP Pipeline Run Summary
 
-Run created: `2026-08-16 21:40:59`
+Run created: `2026-08-17 12:47:19`
 
 ## Purpose
 
-Roll up the full conservative MVP pipeline: normalization, data-quality gates, candidate gating, valuation/context features, research queue, exclusion/hold review, and property research notes. This report is for workflow tracking only. It does not recommend buying or selling any property.
+Roll up the full conservative MVP pipeline: normalization, data-quality gates, candidate gating, valuation/context features, research scoring, research queue, exclusion/hold review, and property research notes. This report is for workflow tracking only. It does not recommend buying or selling any property.
 
 ## Input files
 
 - `data\processed\all_properties_normalized.csv` (found)
 - `outputs\tables\active_listing_candidate_summary.csv` (found)
 - `outputs\tables\valuation_context_feature_summary.csv` (found)
+- `outputs\tables\undervaluation_scores_summary.csv` (found)
 - `outputs\tables\property_research_queue_summary.csv` (found)
 - `outputs\tables\candidate_exclusion_review_summary.csv` (found)
 - `outputs\tables\property_research_notes_summary.csv` (found)
@@ -34,6 +35,15 @@ Roll up the full conservative MVP pipeline: normalization, data-quality gates, c
 
 Reminder: these are context signals, not a valuation score.
 - Valuation score created: **0**
+
+## Research Scoring
+
+- Properties scored: **10.0**
+- Properties not scored (excluded by candidate gating): **0.0**
+- Max achievable research score (of 100; remaining points reserved for signals not yet implemented): **82.0**
+- Median research score: **35.0**
+
+This is a transparent research-ranking score for human triage only (docs/scoring_methodology.md). It is not a final/validated score, not an investment ranking, and not a purchase or sale recommendation.
 
 ## Research Queue
 
@@ -72,4 +82,5 @@ All four counts above should read 0 for this pipeline to remain MVP-safe.
 - Active-listing detail pulls are not depended on for this pipeline; days on market, price history, tax history, HOA fee, and listing description remain unavailable for every record.
 - Recently sold search prices are not confirmed final sale prices and are not used for backtesting.
 - Zestimate and Rent Zestimate are context signals, not an appraisal or confirmed market rent.
-- No scoring model, ranking, or buy/sell recommendation has been built yet. This report only summarizes the conservative research pipeline described in the project instructions.
+- The research-ranking score (Decision 019) only implements the signals available from the current search-level data; roughly 18 of 100 points are reserved for signals not yet built (comparable-sale discount, price-cut/days-on-market history, HOA/tax burden, multifamily rental-use potential) and always score 0 for now.
+- No investment recommendation or buy/sell recommendation has been built. This report only summarizes the conservative research pipeline described in the project instructions.

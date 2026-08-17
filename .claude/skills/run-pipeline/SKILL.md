@@ -6,8 +6,8 @@ description: This skill should be used when the user asks to "run the pipeline",
 # Run the Zillow Research Pipeline
 
 Run the full conservative MVP pipeline for this project end-to-end, in the
-fixed order described in `README.md` and `docs/decision_log.md` Decision
-015, then report whether the anti-overclaim safeguards still hold.
+fixed order described in `README.md` and `docs/decision_log.md` Decisions
+015 and 019, then report whether the anti-overclaim safeguards still hold.
 
 ## When to use this skill
 
@@ -28,6 +28,7 @@ python scripts/build_property_database.py
 python scripts/run_data_quality_check.py
 python scripts/create_active_listing_candidate_table.py
 python scripts/create_valuation_context_features.py
+python scripts/create_property_scores_table.py
 python scripts/create_research_queue_table.py
 python scripts/create_candidate_exclusion_review_table.py
 python scripts/create_property_research_notes.py
@@ -53,10 +54,17 @@ report back:
    backtesting-ready) must read `0`. If any is nonzero, treat this as a
    serious regression and flag it clearly — it means something in the
    pipeline started producing exactly the kind of output this project's
-   guardrails (see `CLAUDE.md`) forbid.
-2. **Data Quality / Research Queue / Exclusion counts** — summarize how many
-   records ended up in each bucket, so the user can see at a glance whether
-   the run looks like previous runs or changed materially.
+   guardrails (see `CLAUDE.md`) forbid. Note the distinction from the
+   **Research Scoring** section: since Decision 019, "properties scored" is
+   expected to be nonzero — that is the research-ranking score, not a
+   "final score." Only the four Anti-Overclaim Safeguards counts (plus
+   `investment_recommendation_created` / `buy_sell_recommendation_created` /
+   `backtesting_ready` / `fair_value_estimate_created` in
+   `outputs/tables/undervaluation_scores_summary.csv`) must stay at 0.
+2. **Data Quality / Research Scoring / Research Queue / Exclusion counts** —
+   summarize how many records ended up in each bucket and the median/range
+   of research scores, so the user can see at a glance whether the run
+   looks like previous runs or changed materially.
 3. Whether `outputs/property_research_notes/*.md` regenerated without a
    `ValueError` from the forbidden-language check in
    `scripts/create_property_research_notes.py` (a raised error there means a

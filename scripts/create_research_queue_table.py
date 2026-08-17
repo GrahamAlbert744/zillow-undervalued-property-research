@@ -10,7 +10,8 @@ Purpose:
 - Do NOT backtest.
 
 Input:
-- data/interim/valuation_context_features.csv
+- data/interim/property_scores.csv (valuation/context features plus the
+  Decision 019 research-ranking score)
 
 Outputs:
 - data/interim/property_research_queue.csv
@@ -24,7 +25,7 @@ from pathlib import Path
 import pandas as pd
 
 
-INPUT_PATH = Path("data/interim/valuation_context_features.csv")
+INPUT_PATH = Path("data/interim/property_scores.csv")
 OUTPUT_PATH = Path("data/interim/property_research_queue.csv")
 SUMMARY_PATH = Path("outputs/tables/property_research_queue_summary.csv")
 
@@ -153,7 +154,8 @@ def create_research_queue() -> pd.DataFrame:
     """Create conservative research queue."""
     if not INPUT_PATH.exists():
         raise FileNotFoundError(
-            f"Missing input file: {INPUT_PATH}. Run Phase 14A first."
+            f"Missing input file: {INPUT_PATH}. "
+            "Run scripts/create_property_scores_table.py first."
         )
 
     df = pd.read_csv(INPUT_PATH)
@@ -199,6 +201,7 @@ def create_research_queue() -> pd.DataFrame:
         "valuation_context_signal_count",
         "valuation_context_bucket",
         "context_confidence_notes",
+        "score_confidence_notes",
         "latitude",
         "longitude",
         "distance_from_02131_miles",
@@ -211,6 +214,17 @@ def create_research_queue() -> pd.DataFrame:
         "valuation_score_created",
         "ranking_created",
         "buy_sell_recommendation_created",
+        "research_score_created",
+        "valuation_score",
+        "income_potential_score",
+        "property_usefulness_score",
+        "data_quality_score",
+        "total_research_score",
+        "max_achievable_research_score",
+        "score_confidence_notes",
+        "fair_value_estimate_created",
+        "investment_recommendation_created",
+        "backtesting_ready",
         "zillow_url",
         "search_date",
         "data_source",
@@ -237,6 +251,7 @@ def create_research_queue() -> pd.DataFrame:
         "latitude",
         "longitude",
         "distance_from_02131_miles",
+        "total_research_score",
     ]
 
     for column in numeric_columns:
@@ -263,6 +278,8 @@ def create_research_queue() -> pd.DataFrame:
         "valuation_score_created",
         "ranking_created",
         "buy_sell_recommendation_created",
+        "research_score_created",
+        "fair_value_estimate_created",
     ]
 
     for column in boolean_columns:
@@ -289,19 +306,32 @@ def create_research_queue() -> pd.DataFrame:
     }
 
     df["research_priority_order"] = df["research_priority"].map(priority_order).fillna(99)
+    df["total_research_score"] = df["total_research_score"].fillna(0)
 
+    # total_research_score (Decision 019) is used as an added ordering
+    # signal within each research_priority tier, alongside the existing
+    # valuation_context_signal_count and ppsf tiebreakers. Candidate gating
+    # (research_priority_order) still comes first: a higher score never
+    # moves a needs-review/excluded record ahead of a clean review_first one.
     df = df.sort_values(
         by=[
             "research_priority_order",
+            "total_research_score",
             "valuation_context_signal_count",
             "price_per_sqft_vs_home_type_median_pct",
         ],
-        ascending=[True, False, True],
+        ascending=[True, False, False, True],
     ).reset_index(drop=True)
 
     df["research_queue_position"] = range(1, len(df) + 1)
 
-    # Anti-overclaim safeguards.
+    # Anti-overclaim safeguards. research_score_created (Decision 019) is
+    # expected to be True for scored rows now — that is the milestone this
+    # decision approved. The four flags below must still always read False/0:
+    # a *research-ranking* score is explicitly not a final/validated score,
+    # not an investment ranking, not a buy/sell/purchase-or-sale
+    # recommendation, and not backtesting-ready (see
+    # docs/scoring_methodology.md "Interpretation rule").
     df["research_queue_not_investment_ranking"] = True
     df["final_score_created"] = False
     df["investment_recommendation_created"] = False
@@ -352,6 +382,14 @@ def create_research_queue() -> pd.DataFrame:
         "valuation_context_signal_count",
         "valuation_context_bucket",
         "context_confidence_notes",
+        "research_score_created",
+        "valuation_score",
+        "income_potential_score",
+        "property_usefulness_score",
+        "data_quality_score",
+        "total_research_score",
+        "max_achievable_research_score",
+        "score_confidence_notes",
         "latitude",
         "longitude",
         "distance_from_02131_miles",
@@ -418,6 +456,10 @@ def create_summary(df: pd.DataFrame) -> pd.DataFrame:
         {
             "metric": "backtesting_ready_count",
             "value": int(df["backtesting_ready"].sum()),
+        },
+        {
+            "metric": "research_score_created_count",
+            "value": int(df["research_score_created"].sum()),
         },
     ]
 

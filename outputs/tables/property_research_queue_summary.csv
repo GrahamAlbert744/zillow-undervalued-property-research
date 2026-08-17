@@ -10,6 +10,7 @@ final_score_created_count,0
 investment_recommendation_created_count,0
 buy_sell_recommendation_created_count,0
 backtesting_ready_count,0
+research_score_created_count,10
 research_queue_bucket__data_quality_review,1
 research_queue_bucket__review_first,2
 research_queue_bucket__review_if_time,6

@@ -1130,3 +1130,119 @@ only the one real lookup table (`home_type` labels) was extracted.
 - None outstanding; config extraction is closed.
 - Proceed to the conservative scoring model.
 
+---
+
+# Decision 019 — Build the first conservative scoring model
+
+## Date
+
+2026-08-17
+
+## Decision
+
+Implement `src/scoring.py` (version `score_v0_1_mvp_simple`) and
+`scripts/create_property_scores_table.py`, applying the 100-point MVP
+framework already specced in `docs/scoring_methodology.md` — Valuation
+(40), Income Potential (25), Property Usefulness (20), Data Quality (15) —
+to every property already past candidate gating. This begins the milestone
+Decisions 004, 007, and 013 gated behind explicit approval, given here.
+
+The new stage runs between `create_valuation_context_features.py` and
+`create_research_queue_table.py`. `create_research_queue_table.py` now
+reads `data/interim/property_scores.csv` instead of
+`valuation_context_features.csv` directly, and uses `total_research_score`
+as an added tiebreaker in the existing queue ordering — it does not change
+which `research_priority`/`research_queue_bucket` a property falls into,
+only the order within a bucket. No new output-label vocabulary was
+introduced; the score is exposed only as numeric columns and confidence
+notes, not as a category label, since the doc's own "Preliminary Score
+Categories" table (e.g. "Strong research candidate") uses terms outside
+CLAUDE.md's allowed output-label list and this project already has an
+unresolved gap between that allowed-label list and the labels the pipeline
+actually emits (`review_first`, `watchlist_limited_data`, etc.) — not a gap
+this decision should widen further. See Follow-up Actions.
+
+Only 82 of the 100 possible points are achievable in this version; the
+doc's own "future feature" signals (comparable-sale discount, price-cut/
+days-on-market history, HOA/tax burden, multifamily rental-use potential)
+are not implemented and always score 0. `docs/scoring_methodology.md` and
+`outputs/reports/mvp_run_summary.md` both document this explicitly.
+
+## Reason
+
+The candidate-gating, valuation-context, and research-queue stages were
+already validated on the real (if small) sample data, satisfying the
+condition Decisions 004/007/013 set for starting scoring. The methodology
+document had already fully specified the MVP model; this decision
+implements it rather than redesigning it.
+
+## Alternatives Considered
+
+- Use `prompts/23_conservative_scoring_model.md`'s point breakdown
+  (40/20/15/15/10) instead of `docs/scoring_methodology.md`'s (40/25/20/15).
+- Score every normalized record, including `reject`/`hold` candidate-gating
+  buckets.
+- Emit the doc's "Preliminary Score Categories" labels (Strong research
+  candidate / Research candidate / Low priority / etc.) as an output field.
+- Treat the four existing anti-overclaim flags
+  (`final_score_created`/`investment_recommendation_created`/
+  `buy_sell_recommendation_created`/`backtesting_ready`) as satisfied by
+  simply flipping `final_score_created` to `True` now that a score exists.
+
+## Why Those Were Rejected
+
+`prompts/23` predates Decision 013's candidate-gating split and is the
+older of the two specs; `docs/scoring_methodology.md` is the doc the
+project's own "Current Status" section pointed to as still being iterated
+on, and is more detailed. Scoring `reject`/`hold` records would contradict
+Decision 013's whole premise — those records are already conservatively
+routed to `candidate_exclusion_review_table.csv` instead. The doc's
+category labels are not on CLAUDE.md's allowed-label list, and introducing
+a third informal label vocabulary (alongside the doc's allowed list and the
+pipeline's actual bucket names) would make an existing documentation gap
+worse instead of narrowing it — pure numeric score + confidence notes
+avoids that entirely. Flipping `final_score_created` to `True` would be
+factually accurate but misleading in intent: this project's own
+"Interpretation rule" (`docs/scoring_methodology.md`) distinguishes a
+provisional *research-ranking* score from a *final/validated* score, and
+that flag exists specifically to signal the latter has not happened —
+so a new `research_score_created` flag was added instead, and the original
+four flags keep their original meaning and stay `False`.
+
+## Implications
+
+- `outputs/tables/undervaluation_scores_summary.csv` and
+  `data/interim/property_scores.csv` now exist; see
+  `docs/data_dictionary.md`.
+- `outputs/reports/mvp_run_summary.md` has a new "Research Scoring"
+  section, and its "Limitations" section now explains the 82-of-100 ceiling
+  instead of stating no scoring model has been built.
+- Verified via a full pipeline run: research-queue bucket counts
+  (`review_first`/`review_next`/etc.) are unchanged from the pre-scoring
+  run — only within-bucket ordering can change — and all four
+  Anti-Overclaim Safeguards counts still read 0.
+- `tests/test_scoring.py` added, covering: total score never exceeds the
+  82-point ceiling, missing data never inflates a component score,
+  `reject`/`hold` rows are never scored, and the scoring stage never sets
+  `fair_value_estimate_created`/`investment_recommendation_created`/
+  `buy_sell_recommendation_created`/`backtesting_ready`.
+
+## Follow-up Actions
+
+- CLAUDE.md's allowed output-label list
+  (`research first`/`watchlist`/`avoid`/`possible candidate after human
+  review`/`needs data review`) is not yet implemented anywhere in the
+  pipeline; the research-queue buckets use different internal names. This
+  predates this decision and this decision does not fix it, but it should
+  be resolved before any user-facing label (score-derived or otherwise) is
+  added.
+- Consider adding the doc's remaining deferred signals (comparable-sale
+  discount once a comp engine exists, price-cut/days-on-market once detail
+  pulls are relied on, HOA/tax burden, multifamily rental-use potential) as
+  their own future scoring-version decisions, each bumping the version
+  number per the doc's Versioning Rules.
+- Per Decisions 007/013's original sequencing and the doc's Model
+  Evaluation Metrics section, do not begin status/lifecycle tracking or
+  backtesting until sale outcomes are confirmable, and do not calibrate
+  this score's thresholds with fewer than 20 sold outcomes.
+

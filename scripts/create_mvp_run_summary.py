@@ -3,8 +3,8 @@ Create the MVP run summary report.
 
 Purpose:
 - Roll up counts across the full MVP pipeline (normalize -> gates ->
-  candidate table -> valuation context -> research queue -> exclusion
-  review -> research notes).
+  candidate table -> valuation context -> research scoring -> research
+  queue -> exclusion review -> research notes).
 - Confirm anti-overclaim safeguards are still in place.
 - Surface remaining limitations. Do not recommend buying or selling.
 
@@ -13,6 +13,7 @@ reported as not available rather than causing a crash):
 - data/processed/all_properties_normalized.csv
 - outputs/tables/active_listing_candidate_summary.csv
 - outputs/tables/valuation_context_feature_summary.csv
+- outputs/tables/undervaluation_scores_summary.csv
 - outputs/tables/property_research_queue_summary.csv
 - outputs/tables/candidate_exclusion_review_summary.csv
 - outputs/tables/property_research_notes_summary.csv
@@ -32,6 +33,7 @@ import pandas as pd
 NORMALIZED_PATH = Path("data/processed/all_properties_normalized.csv")
 CANDIDATE_SUMMARY_PATH = Path("outputs/tables/active_listing_candidate_summary.csv")
 VALUATION_SUMMARY_PATH = Path("outputs/tables/valuation_context_feature_summary.csv")
+SCORES_SUMMARY_PATH = Path("outputs/tables/undervaluation_scores_summary.csv")
 QUEUE_SUMMARY_PATH = Path("outputs/tables/property_research_queue_summary.csv")
 EXCLUSION_SUMMARY_PATH = Path("outputs/tables/candidate_exclusion_review_summary.csv")
 NOTES_SUMMARY_PATH = Path("outputs/tables/property_research_notes_summary.csv")
@@ -66,6 +68,7 @@ def build_input_files_section() -> list[str]:
         NORMALIZED_PATH,
         CANDIDATE_SUMMARY_PATH,
         VALUATION_SUMMARY_PATH,
+        SCORES_SUMMARY_PATH,
         QUEUE_SUMMARY_PATH,
         EXCLUSION_SUMMARY_PATH,
         NOTES_SUMMARY_PATH,
@@ -122,6 +125,30 @@ def build_valuation_context_section(valuation_metrics: dict[str, str] | None) ->
         "",
         "Reminder: these are context signals, not a valuation score.",
         metric_line(valuation_metrics, "valuation_score_created", "Valuation score created"),
+        "",
+    ]
+
+
+def build_research_scoring_section(scores_metrics: dict[str, str] | None) -> list[str]:
+    """Section covering the Decision 019 research-ranking score."""
+    return [
+        "## Research Scoring",
+        "",
+        metric_line(scores_metrics, "scored_records", "Properties scored"),
+        metric_line(
+            scores_metrics, "not_scored_excluded_by_candidate_gating",
+            "Properties not scored (excluded by candidate gating)",
+        ),
+        metric_line(
+            scores_metrics, "max_achievable_research_score",
+            "Max achievable research score (of 100; remaining points reserved "
+            "for signals not yet implemented)",
+        ),
+        metric_line(scores_metrics, "median_total_research_score", "Median research score"),
+        "",
+        "This is a transparent research-ranking score for human triage only "
+        "(docs/scoring_methodology.md). It is not a final/validated score, "
+        "not an investment ranking, and not a purchase or sale recommendation.",
         "",
     ]
 
@@ -219,8 +246,13 @@ def build_limitations_section() -> list[str]:
         "and are not used for backtesting.",
         "- Zestimate and Rent Zestimate are context signals, not an appraisal "
         "or confirmed market rent.",
-        "- No scoring model, ranking, or buy/sell recommendation has been "
-        "built yet. This report only summarizes the conservative research "
+        "- The research-ranking score (Decision 019) only implements the "
+        "signals available from the current search-level data; roughly "
+        "18 of 100 points are reserved for signals not yet built (comparable-"
+        "sale discount, price-cut/days-on-market history, HOA/tax burden, "
+        "multifamily rental-use potential) and always score 0 for now.",
+        "- No investment recommendation or buy/sell recommendation has been "
+        "built. This report only summarizes the conservative research "
         "pipeline described in the project instructions.",
         "",
     ]
@@ -239,6 +271,7 @@ def main() -> None:
 
     candidate_metrics = read_metric_table(CANDIDATE_SUMMARY_PATH)
     valuation_metrics = read_metric_table(VALUATION_SUMMARY_PATH)
+    scores_metrics = read_metric_table(SCORES_SUMMARY_PATH)
     queue_metrics = read_metric_table(QUEUE_SUMMARY_PATH)
     exclusion_metrics = read_metric_table(EXCLUSION_SUMMARY_PATH)
 
@@ -254,10 +287,10 @@ def main() -> None:
         (
             "Roll up the full conservative MVP pipeline: normalization, "
             "data-quality gates, candidate gating, valuation/context "
-            "features, research queue, exclusion/hold review, and "
-            "property research notes. This report is for workflow "
-            "tracking only. It does not recommend buying or selling any "
-            "property."
+            "features, research scoring, research queue, exclusion/hold "
+            "review, and property research notes. This report is for "
+            "workflow tracking only. It does not recommend buying or "
+            "selling any property."
         ),
         "",
     ]
@@ -265,6 +298,7 @@ def main() -> None:
     report_lines.extend(build_input_files_section())
     report_lines.extend(build_data_quality_section(total_records, candidate_metrics))
     report_lines.extend(build_valuation_context_section(valuation_metrics))
+    report_lines.extend(build_research_scoring_section(scores_metrics))
     report_lines.extend(build_research_queue_section(queue_metrics))
     report_lines.extend(build_exclusion_review_section(exclusion_metrics))
     report_lines.extend(build_research_notes_section(NOTES_SUMMARY_PATH))

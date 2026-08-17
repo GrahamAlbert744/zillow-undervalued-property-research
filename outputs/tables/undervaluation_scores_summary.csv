@@ -1,0 +1,12 @@
+metric,value
+total_records,10.0
+scored_records,10.0
+not_scored_excluded_by_candidate_gating,0.0
+max_achievable_research_score,82.0
+fair_value_estimate_created_count,0.0
+investment_recommendation_created_count,0.0
+buy_sell_recommendation_created_count,0.0
+backtesting_ready_count,0.0
+median_total_research_score,35.0
+max_total_research_score_observed,55.0
+min_total_research_score_observed,28.0

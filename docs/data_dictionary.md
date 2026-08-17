@@ -588,6 +588,58 @@ data/interim/valuation_context_features.csv
 
 ---
 
+# Table: `property_scores.csv` / `undervaluation_scores_summary.csv`
+
+## Path
+
+```text
+data/interim/property_scores.csv
+outputs/tables/undervaluation_scores_summary.csv (summary)
+```
+
+## Purpose
+
+The Decision 019 MVP research-ranking score (`score_v0_1_mvp_simple`,
+`docs/scoring_methodology.md`). A transparent, explainable 100-point signal
+for human research triage only — not a fair value estimate, not an
+investment ranking, and not a purchase/sale recommendation. Only properties
+already past candidate gating (`candidate_review_bucket` in
+`rankable_later` or `needs_review`) are scored; `reject`/`hold` rows are
+left unscored here and stay visible in
+`candidate_exclusion_review_table.csv` instead.
+
+## Source
+
+```text
+data/interim/valuation_context_features.csv
+→ src/scoring.py (score_property)
+→ scripts/create_property_scores_table.py
+→ data/interim/property_scores.csv
+→ outputs/tables/undervaluation_scores_summary.csv
+```
+
+## Key fields
+
+- `valuation_score` (0-40, 30 achievable in this version), `income_potential_score`
+  (0-25, 17 achievable), `property_usefulness_score` (0-20, all achievable),
+  `data_quality_score` (0-15, all achievable) — the four component scores.
+- `total_research_score` — sum of the four components.
+- `max_achievable_research_score` — always `82` in this version; the
+  remaining 18 points belong to signals not yet implemented (comparable-sale
+  discount, price-cut/days-on-market history, HOA/tax burden, multifamily
+  rental-use potential).
+- `score_confidence_notes` — plain-language explanation of which signals
+  were available vs. withheld for this specific property.
+- `research_score_created` — `True` only for scored (gating-eligible) rows.
+
+## Anti-overclaim flags
+
+- `fair_value_estimate_created`, `investment_recommendation_created`,
+  `buy_sell_recommendation_created`, and `backtesting_ready` are always
+  `False`.
+
+---
+
 # Table: `candidate_exclusion_review_table.csv`
 
 ## Path
