@@ -23,8 +23,14 @@ Outputs:
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import pandas as pd
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.output_labels import label_for_exclusion_type  # noqa: E402
 
 
 CANDIDATE_INPUT_PATH = Path("data/interim/active_listing_candidate_table.csv")
@@ -143,6 +149,8 @@ def create_exclusion_review_table() -> pd.DataFrame:
     ].copy()
 
     df["exclusion_type"] = df["candidate_review_bucket"]
+    # CLAUDE.md-compliant display label (Decision 020).
+    df["conservative_output_label"] = df["exclusion_type"].apply(label_for_exclusion_type)
     df["exclusion_reason_summary"] = df.apply(build_exclusion_reason_summary, axis=1)
     df["next_review_step"] = df["exclusion_type"].apply(build_next_review_step)
 
@@ -190,6 +198,7 @@ def create_exclusion_review_table() -> pd.DataFrame:
         "candidate_state",
         "candidate_review_bucket",
         "exclusion_type",
+        "conservative_output_label",
         "exclusion_reason_summary",
         "missing_price",
         "invalid_price",
@@ -274,7 +283,20 @@ def create_summary(df: pd.DataFrame) -> pd.DataFrame:
     reason_counts["metric"] = "exclusion_type__" + reason_counts["exclusion_type"].astype(str)
     reason_counts = reason_counts[["metric", "value"]]
 
-    return pd.concat([summary, reason_counts], ignore_index=True)
+    # CLAUDE.md-compliant label counts (Decision 020), additive alongside
+    # the internal exclusion_type counts above.
+    label_counts = (
+        df["conservative_output_label"]
+        .value_counts(dropna=False)
+        .rename_axis("conservative_output_label")
+        .reset_index(name="value")
+    )
+    label_counts["metric"] = (
+        "conservative_output_label__" + label_counts["conservative_output_label"].astype(str)
+    )
+    label_counts = label_counts[["metric", "value"]]
+
+    return pd.concat([summary, reason_counts, label_counts], ignore_index=True)
 
 
 def main() -> None:

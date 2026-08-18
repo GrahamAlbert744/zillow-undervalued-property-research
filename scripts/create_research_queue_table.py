@@ -21,8 +21,14 @@ Outputs:
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import pandas as pd
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.output_labels import label_for_queue_bucket  # noqa: E402
 
 
 INPUT_PATH = Path("data/interim/property_scores.csv")
@@ -292,6 +298,10 @@ def create_research_queue() -> pd.DataFrame:
 
     df["research_priority"] = df.apply(assign_research_priority, axis=1)
     df["research_queue_bucket"] = df.apply(assign_research_queue_bucket, axis=1)
+    # CLAUDE.md-compliant display label (Decision 020), derived from the
+    # internal research_queue_bucket. This is the only field intended for a
+    # human-facing "official" label; research_queue_bucket remains internal.
+    df["conservative_output_label"] = df["research_queue_bucket"].apply(label_for_queue_bucket)
     df["research_reason"] = df.apply(build_research_reason, axis=1)
     df["next_research_steps"] = df.apply(build_next_research_steps, axis=1)
 
@@ -342,6 +352,7 @@ def create_research_queue() -> pd.DataFrame:
         "research_queue_position",
         "research_priority",
         "research_queue_bucket",
+        "conservative_output_label",
         "research_reason",
         "next_research_steps",
         "property_id",
@@ -476,6 +487,22 @@ def create_summary(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     bucket_summary = bucket_summary[["metric", "value"]]
+
+    # CLAUDE.md-compliant label counts (Decision 020), additive alongside
+    # the internal bucket counts above.
+    label_summary = (
+        df.groupby("conservative_output_label", dropna=False)
+        .size()
+        .reset_index(name="value")
+    )
+
+    label_summary["metric"] = (
+        "conservative_output_label__" + label_summary["conservative_output_label"].astype(str)
+    )
+
+    label_summary = label_summary[["metric", "value"]]
+
+    summary = pd.concat([summary, label_summary], ignore_index=True)
 
     home_type_summary = (
         df.groupby("home_type", dropna=False)

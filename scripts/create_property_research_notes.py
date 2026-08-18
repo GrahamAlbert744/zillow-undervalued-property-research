@@ -91,8 +91,10 @@ def build_property_summary(row: pd.Series) -> list[str]:
         f"- Distance from ZIP 02131: {fmt(row['distance_from_02131_miles'])} miles",
         f"- Zillow URL: {fmt(row['zillow_url'])}",
         f"- Pull date / source: {fmt(row['search_date'])} / {fmt(row['data_source'])}",
-        f"- Research queue position: {fmt(row['research_queue_position'])} "
-        f"(bucket: `{fmt(row['research_queue_bucket'])}`, priority: `{fmt(row['research_priority'])}`)",
+        f"- Research label: **{fmt(row['conservative_output_label'])}** "
+        f"(queue position: {fmt(row['research_queue_position'])}, "
+        f"internal bucket: `{fmt(row['research_queue_bucket'])}`, "
+        f"priority: `{fmt(row['research_priority'])}`)",
         "",
     ]
 

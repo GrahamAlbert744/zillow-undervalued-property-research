@@ -158,6 +158,26 @@ def build_research_queue_section(queue_metrics: dict[str, str] | None) -> list[s
     return [
         "## Research Queue",
         "",
+        "Conservative output labels (CLAUDE.md, Decision 020) — the official "
+        "human-facing labels for this pipeline:",
+        "",
+        metric_line(
+            queue_metrics, "conservative_output_label__research first", "research first",
+        ),
+        metric_line(
+            queue_metrics,
+            "conservative_output_label__possible candidate after human review",
+            "possible candidate after human review",
+        ),
+        metric_line(queue_metrics, "conservative_output_label__watchlist", "watchlist"),
+        metric_line(
+            queue_metrics, "conservative_output_label__needs data review", "needs data review",
+        ),
+        metric_line(queue_metrics, "conservative_output_label__avoid", "avoid"),
+        "",
+        "Internal pipeline buckets (not a human-facing label; see "
+        "docs/data_dictionary.md):",
+        "",
         metric_line(queue_metrics, "review_first_count", "review_first"),
         metric_line(queue_metrics, "review_next_count", "review_next"),
         metric_line(queue_metrics, "review_if_time_count", "review_if_time"),
@@ -180,6 +200,16 @@ def build_exclusion_review_section(exclusion_metrics: dict[str, str] | None) -> 
         metric_line(exclusion_metrics, "reject_count", "Reject"),
         metric_line(exclusion_metrics, "hold_count", "Hold"),
         metric_line(exclusion_metrics, "needs_review_count", "Needs review"),
+        "",
+        "Conservative output labels for these rows (CLAUDE.md, Decision 020):",
+        "",
+        metric_line(
+            exclusion_metrics, "conservative_output_label__avoid", "avoid",
+        ),
+        metric_line(
+            exclusion_metrics, "conservative_output_label__needs data review",
+            "needs data review",
+        ),
         "",
         "No excluded or held property was silently dropped from the pipeline.",
         "",

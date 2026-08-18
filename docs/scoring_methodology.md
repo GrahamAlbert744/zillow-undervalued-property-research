@@ -356,7 +356,29 @@ Missing Zestimate or Rent Zestimate should reduce confidence, but should not aut
 
 
 
-Use these categories for interpretation.
+**Superseded (Decision 020): do not implement this table's label column.**
+
+This table's five labels (Strong research candidate / Research candidate /
+
+Watchlist / Low priority / Avoid / insufficient data) were never
+
+implemented and must not be — they are a third, competing label vocabulary
+
+alongside CLAUDE.md's five allowed output labels and the pipeline's actual
+
+internal bucket names, and CLAUDE.md is the normative one. The "Research
+
+Queue Labels" section directly below already matches CLAUDE.md and is the
+
+one `src/output_labels.py` implements. This table is kept only as a record
+
+of an earlier, rejected design; use it for score-range intuition only, not
+
+for a label string.
+
+
+
+Use these score ranges for interpretation.
 
 
 
@@ -385,6 +407,16 @@ Do not call any property a “buy” based on this score.
 
 
 \# Research Queue Labels
+
+
+
+Implemented as of Decision 020 via `src/output_labels.py`
+
+(`conservative_output_label`), mapped from `research_queue_bucket` /
+
+`exclusion_type`. See `docs/decision_log.md` Decision 020 for the mapping
+
+and its rationale.
 
 
 

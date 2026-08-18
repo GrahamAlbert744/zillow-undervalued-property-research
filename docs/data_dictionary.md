@@ -669,6 +669,11 @@ data/interim/property_research_queue.csv (optional cross-reference)
 ## Key fields
 
 - `exclusion_type` — mirrors `candidate_review_bucket` (`reject`, `hold`, or `needs_review`).
+  Internal only; not one of CLAUDE.md's allowed output labels.
+- `conservative_output_label` (Decision 020) — the CLAUDE.md-compliant display
+  label derived from `exclusion_type` via `src/output_labels.py`
+  (`reject` → `avoid`; `hold`/`needs_review` → `needs data review`). This is
+  the field intended for human-facing display; `exclusion_type` stays internal.
 - `exclusion_reason_summary` — plain-language explanation built from the same hard
   data-quality gate flags used by `create_active_listing_candidate_table.py`
   (missing/invalid price, missing/invalid square feet, outside radius,
@@ -719,6 +724,13 @@ data/interim/property_research_queue.csv
 
 - Properties whose `research_queue_bucket` is `excluded` are skipped — they
   are already explained in `candidate_exclusion_review_table.csv`.
+- `data/interim/property_research_queue.csv` also carries a
+  `conservative_output_label` column (Decision 020) — the CLAUDE.md-compliant
+  display label (`research first`, `watchlist`, `avoid`, `possible candidate
+  after human review`, or `needs data review`) derived from
+  `research_queue_bucket` via `src/output_labels.py`. Each generated note's
+  "Research label" line uses this field; `research_queue_bucket` itself
+  stays internal-only.
 - Each note covers: property summary, available Zillow evidence, valuation
   context signals, income context signals, data-quality warnings, missing
   information, next human research steps, and interpretation cautions.

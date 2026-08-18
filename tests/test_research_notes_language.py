@@ -101,6 +101,7 @@ def test_build_note_raises_before_writing_forbidden_language(monkeypatch, tmp_pa
         "data_source": "zillow_connector",
         "research_queue_position": 1,
         "research_queue_bucket": "review_first",
+        "conservative_output_label": "research first",
         "research_priority": "high",
         "search_level_record_only": True,
         "zestimate": None,

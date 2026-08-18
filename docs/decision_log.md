@@ -1246,3 +1246,112 @@ four flags keep their original meaning and stay `False`.
   backtesting until sale outcomes are confirmable, and do not calibrate
   this score's thresholds with fewer than 20 sold outcomes.
 
+---
+
+# Decision 020 — Implement CLAUDE.md's allowed output labels
+
+## Date
+
+2026-08-17
+
+## Decision
+
+Add `src/output_labels.py`, defining `ALLOWED_OUTPUT_LABELS` (the five
+strings CLAUDE.md permits: `research first`, `watchlist`, `avoid`,
+`possible candidate after human review`, `needs data review`) and two
+mappings onto them:
+
+```text
+QUEUE_BUCKET_TO_LABEL (from research_queue_bucket):
+  review_first            -> research first
+  review_next             -> possible candidate after human review
+  review_if_time          -> watchlist
+  watchlist_limited_data  -> watchlist
+  data_quality_review     -> needs data review
+  excluded                -> avoid
+
+EXCLUSION_TYPE_TO_LABEL (from exclusion_type):
+  reject         -> avoid
+  hold           -> needs data review
+  needs_review   -> needs data review
+```
+
+A new `conservative_output_label` column is added to
+`data/interim/property_research_queue.csv` and
+`data/interim/candidate_exclusion_review_table.csv`, computed via this
+module. `scripts/create_property_research_notes.py`'s "Research queue
+position" note line becomes a "Research label" line leading with this
+value; `scripts/create_mvp_run_summary.py`'s Research Queue and Exclusion /
+Hold Review sections now show label counts alongside the existing internal
+bucket counts.
+
+No internal bucket, candidate-gating logic, or scoring logic changed. The
+internal bucket names (`review_first`, `rankable_later`, etc.) still drive
+every branch of pipeline logic and remain in every output table as
+secondary/technical detail; only a new, additional field carries the
+CLAUDE.md-compliant string.
+
+## Reason
+
+Decision 019 found and explicitly flagged that CLAUDE.md's allowed-label
+guardrail (Decision 003) had never actually been implemented — every
+human-facing output (research notes, `mvp_run_summary.md`, the summary
+CSVs) surfaced the pipeline's internal bucket vocabulary instead. This
+closes that gap.
+
+## Alternatives Considered
+
+- Rename the internal bucket values themselves to the CLAUDE.md strings.
+- Map `review_next` to `research first` (a second top-priority tier)
+  instead of `possible candidate after human review`.
+- Map `excluded`/`reject` to `needs data review` instead of `avoid`, since
+  many current rejections are data problems (missing lat/long, undisclosed
+  address) rather than a judgment about the property itself.
+- Implement `docs/scoring_methodology.md`'s "Preliminary Score Categories"
+  table instead of (or in addition to) the "Research Queue Labels" section.
+
+## Why Those Were Rejected
+
+`tests/test_candidate_gating.py` and `tests/test_scoring.py` hard-assert on
+the literal internal bucket strings as the contract of the gating/scoring
+functions, and roughly six scripts branch on those exact values — renaming
+them is invasive for no behavioral benefit over an additive column.
+`review_next` already sits behind `review_first` in queue ordering and is
+explicitly the second priority tier, not the top one; collapsing both into
+"research first" would blur a distinction the queue ordering itself
+preserves. `excluded`/`reject` do include recoverable data problems, but
+the candidate-gating stage's own hard filters (outside radius,
+non-residential, invalid core data) are permanent disqualifiers for the
+*current* record, not a "come back later" state the way `hold`/
+`needs_review` are — `avoid` communicates "doesn't meet the project's
+basic research criteria right now," which is accurate without implying an
+investment judgment, while `needs data review` more precisely fits the
+recoverable states. The "Preliminary Score Categories" table uses labels
+CLAUDE.md doesn't allow (`Strong research candidate`, `Low priority`,
+etc.) — implementing it would violate the same guardrail this decision
+closes, so it is marked superseded instead (see
+`docs/scoring_methodology.md`).
+
+## Implications
+
+- `outputs/property_research_notes/*.md`, `outputs/reports/mvp_run_summary.md`,
+  `outputs/tables/property_research_queue_summary.csv`, and
+  `outputs/tables/candidate_exclusion_review_summary.csv` now all surface a
+  CLAUDE.md-compliant label somewhere, closing the gap Decision 019 flagged.
+- `tests/test_output_labels.py` added: every mapping value is in
+  `ALLOWED_OUTPUT_LABELS`; `assert_valid_label` rejects anything else;
+  every row `create_research_queue()` and `create_exclusion_review_table()`
+  produce carries a valid label. This is a positive-allowlist counterpart
+  to the existing forbidden-language regex tests.
+- Verified via a full pipeline run and `pytest` (53 passed, up from 43):
+  bucket membership, row counts, and all four anti-overclaim safeguard
+  counts are unchanged from the pre-label run — only the new column and
+  its summary counts are additive.
+
+## Follow-up Actions
+
+- None outstanding for this decision.
+- If a future scoring version (see Decision 019's follow-ups) ever wants a
+  score-derived category label, it must map onto these same five strings
+  via this module, not invent a new vocabulary.
+

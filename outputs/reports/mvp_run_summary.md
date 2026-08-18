@@ -1,6 +1,6 @@
 # Zillow MVP Pipeline Run Summary
 
-Run created: `2026-08-17 12:47:19`
+Run created: `2026-08-17 21:45:38`
 
 ## Purpose
 
@@ -47,6 +47,16 @@ This is a transparent research-ranking score for human triage only (docs/scoring
 
 ## Research Queue
 
+Conservative output labels (CLAUDE.md, Decision 020) — the official human-facing labels for this pipeline:
+
+- research first: **2**
+- possible candidate after human review: **not available**
+- watchlist: **7**
+- needs data review: **1**
+- avoid: **not available**
+
+Internal pipeline buckets (not a human-facing label; see docs/data_dictionary.md):
+
 - review_first: **2**
 - review_next: **0**
 - review_if_time: **6**
@@ -60,6 +70,11 @@ This is a transparent research-ranking score for human triage only (docs/scoring
 - Reject: **0**
 - Hold: **0**
 - Needs review: **1**
+
+Conservative output labels for these rows (CLAUDE.md, Decision 020):
+
+- avoid: **not available**
+- needs data review: **1**
 
 No excluded or held property was silently dropped from the pipeline.
 
